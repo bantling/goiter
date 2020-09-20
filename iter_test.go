@@ -155,3 +155,146 @@ func TestMapIterFunc(t *testing.T) {
 		assert.Fail(t, "Must panic on non-map")
 	}()
 }
+
+func TestSingleValueIterFunc (t *testing.T) {
+	// One element
+	iterFunc := SingleValueIterFunc(reflect.ValueOf(5))
+
+	val, next := iterFunc()
+	assert.Equal(t, 5, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)	
+}
+
+func TestChildrenIterFunc(t *testing.T) {
+	// Empty items
+	iterFunc := ChildrenIterFunc()
+
+	_, next := iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+	
+	// Empty array
+	iterFunc = ChildrenIterFunc(reflect.ValueOf([0]int{}))
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// One element array
+	iterFunc = ChildrenIterFunc(reflect.ValueOf([1]int{1}))
+
+	val, next := iterFunc()
+	assert.Equal(t, 1, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// Empty slice
+	iterFunc = ChildrenIterFunc(reflect.ValueOf([]int{}))
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// One element slice
+	iterFunc = ChildrenIterFunc(reflect.ValueOf([]int{1}))
+
+	val, next = iterFunc()
+	assert.Equal(t, 1, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+	
+	// Empty map
+	iterFunc = ChildrenIterFunc(reflect.ValueOf(map[int]int{}))
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// One element map
+	iterFunc = ChildrenIterFunc(reflect.ValueOf(map[int]int{1: 2}))
+
+	val, next = iterFunc()
+	assert.Equal(t, KeyValue{Key: 1, Value: 2}, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+	
+	// One element
+	iterFunc = ChildrenIterFunc(reflect.ValueOf(5))
+
+	val, next = iterFunc()
+	assert.Equal(t, 5, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+	
+	// Empty Array/Slice/Map, element
+	iterFunc = ChildrenIterFunc([0]int{}, []int{}, map[int]int{}, 5)
+
+	val, next = iterFunc()
+	assert.Equal(t, 5, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+	
+	// One element Array/Slice/Map, element
+	iterFunc = ChildrenIterFunc([1]int{1}, []int{2}, map[int]int{3: 4}, 5)
+
+	val, next = iterFunc()
+	assert.Equal(t, 1, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, 2, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, KeyValue{Key: 3, Value: 4}, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, 5, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+}
