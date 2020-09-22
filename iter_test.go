@@ -469,12 +469,12 @@ func TestForLoop(t *testing.T) {
 
 	func() {
 		var (
-			iter     = OfChildren(5, []int{6, 7})
+			iter     *Iter
 			idx      = 0
 			expected = []int{5, 6, 7}
 		)
 
-		for iter.Next() {
+		for iter = OfChildren(5, []int{6, 7}); iter.Next(); {
 			assert.Equal(t, expected[idx], iter.Value())
 			idx++
 		}
