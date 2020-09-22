@@ -156,7 +156,7 @@ func TestMapIterFunc(t *testing.T) {
 	}()
 }
 
-func TestSingleValueIterFunc (t *testing.T) {
+func TestSingleValueIterFunc(t *testing.T) {
 	// One element
 	iterFunc := SingleValueIterFunc(reflect.ValueOf(5))
 
@@ -168,7 +168,7 @@ func TestSingleValueIterFunc (t *testing.T) {
 	assert.False(t, next)
 
 	_, next = iterFunc()
-	assert.False(t, next)	
+	assert.False(t, next)
 }
 
 func TestChildrenIterFunc(t *testing.T) {
@@ -180,7 +180,7 @@ func TestChildrenIterFunc(t *testing.T) {
 
 	_, next = iterFunc()
 	assert.False(t, next)
-	
+
 	// Empty array
 	iterFunc = ChildrenIterFunc(reflect.ValueOf([0]int{}))
 
@@ -224,7 +224,7 @@ func TestChildrenIterFunc(t *testing.T) {
 
 	_, next = iterFunc()
 	assert.False(t, next)
-	
+
 	// Empty map
 	iterFunc = ChildrenIterFunc(reflect.ValueOf(map[int]int{}))
 
@@ -246,7 +246,7 @@ func TestChildrenIterFunc(t *testing.T) {
 
 	_, next = iterFunc()
 	assert.False(t, next)
-	
+
 	// One element
 	iterFunc = ChildrenIterFunc(reflect.ValueOf(5))
 
@@ -259,7 +259,7 @@ func TestChildrenIterFunc(t *testing.T) {
 
 	_, next = iterFunc()
 	assert.False(t, next)
-	
+
 	// Empty Array/Slice/Map, element
 	iterFunc = ChildrenIterFunc([0]int{}, []int{}, map[int]int{}, 5)
 
@@ -272,7 +272,7 @@ func TestChildrenIterFunc(t *testing.T) {
 
 	_, next = iterFunc()
 	assert.False(t, next)
-	
+
 	// One element Array/Slice/Map, element
 	iterFunc = ChildrenIterFunc([1]int{1}, []int{2}, map[int]int{3: 4}, 5)
 
@@ -297,4 +297,147 @@ func TestChildrenIterFunc(t *testing.T) {
 
 	_, next = iterFunc()
 	assert.False(t, next)
+
+	// Two items, three elements
+	iterFunc = ChildrenIterFunc(5, []int{6, 7})
+
+	val, next = iterFunc()
+	assert.Equal(t, 5, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, 6, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, 7, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+}
+
+func TestOf(t *testing.T) {
+	// Empty items
+	iter := Of()
+
+	next := iter.Next()
+	assert.False(t, next)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	// One item
+	iter = Of(5)
+
+	next = iter.Next()
+	assert.True(t, next)
+	assert.Equal(t, 5, iter.Value())
+
+	next = iter.Next()
+	assert.False(t, next)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	// Two items
+	iter = Of(5, []int{6, 7})
+
+	next = iter.Next()
+	assert.True(t, next)
+	assert.Equal(t, 5, iter.Value())
+
+	next = iter.Next()
+	assert.True(t, next)
+	assert.Equal(t, []int{6, 7}, iter.Value())
+
+	next = iter.Next()
+	assert.False(t, next)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+}
+
+func TestOfChildren(t *testing.T) {
+	// Empty items
+	iter := OfChildren()
+
+	next := iter.Next()
+	assert.False(t, next)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	// One item
+	iter = OfChildren(5)
+
+	next = iter.Next()
+	assert.True(t, next)
+	assert.Equal(t, 5, iter.Value())
+
+	next = iter.Next()
+	assert.False(t, next)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	// Two items, three values
+	iter = OfChildren(5, []int{6, 7})
+
+	next = iter.Next()
+	assert.True(t, next)
+	assert.Equal(t, 5, iter.Value())
+
+	next = iter.Next()
+	assert.True(t, next)
+	assert.Equal(t, 6, iter.Value())
+
+	next = iter.Next()
+	assert.True(t, next)
+	assert.Equal(t, 7, iter.Value())
+
+	next = iter.Next()
+	assert.False(t, next)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
 }

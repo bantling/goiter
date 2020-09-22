@@ -136,7 +136,6 @@ func ChildrenIterFunc(items ...interface{}) func() (interface{}, bool) {
 			default:
 				iter = SingleValueIterFunc(itemVal)
 			}
-
 			// Next iteration will now have a non-nil iter, which may be for an empty slice or map.
 			// We'll just keep going through items until we find a non-empty item or run out of items.
 		}
@@ -170,13 +169,13 @@ func Of(items ...interface{}) *Iter {
 }
 
 // OfChildren constructs an Iter that iterates the children of the items passed.
-// If any item is an array/slice/map, then the values contained in it will be iterated.
+// If any item is an array/slice/map, then the values contained in it will be iterated non-recursively.
 // An item of any other type will just be iterated as a single value.
 func OfChildren(items ...interface{}) *Iter {
-	return NewIter(ChildrenIterFunc(items))
+	return NewIter(ChildrenIterFunc(items...))
 }
 
-// Next returns true if there is another item to be read by Next().
+// Next returns true if there is another item to be read by Value.
 // Once Next returns false, further calls to Next or Value panic.
 func (i *Iter) Next() bool {
 	// Die if iterator already exhausted
