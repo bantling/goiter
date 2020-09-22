@@ -1,0 +1,89 @@
+:doctype: article
+
+= goiter
+
+Implementation of iterator pattern based on an iterating function,
+a function that accepts no arguments and returns (next item, true if next item exists).
+
+When the bool result is false, the next item result is invalid in the sense it must be ignored for correct iteration.
+These functions may be designed so that once exhausted, they continue to return (invalid value, false).
+
+== Provided iterating functions
+
+There are several iterating functions provided that are based on reflect.Value.
+
+* ArraySliceIterFunc: iterates any type of array or slice non-recursively. Panics if value passed does not wrap an array or slice.
+* MapIterFunc: iterates any kind of map non-recursively, where next item is a KeyValue{Key interface{}, Value interface{}} instance. Panics if value passed does not wrap a map.
+* SingleValueIterFunc: iterates a single value, where first call to next returns next item = value, further calls return invalid, false. Array/slice/map values are just returned as one value.
+* ChildrenIterFunc: iterates any number of values, using ArraySliceIterFunc, MapIterFunc, and SingleValueIterFunc as appropriate.  
+
+== Iter struct
+
+The Iter struct usses an iterating function to implement the iterator pattern in an idiomatic Go fashion:
+
+* Next is used to advance the iterator
+** returns true if there is another item
+** returns false if the iterating function has just been exhausted
+** panics if the last call to Next exhausted the iterating function
+
+* Value returns the value iterated by last call to Next
+** panics if called after Next has exhausted the iterating function
+** panics if Next has not been called since last call to Value
+
+== Constructors
+
+* NewIter accepts an iterating function
+* Of accepts a vararg of items which are iterated using ArraySliceIterFunc
+* OfChildren accepts a vararg of items which are iterated using ChildrenIterFunc
+
+== Examples (taken from unit tests)
+
+=== Of constructor
+....
+    var (
+        iter     = Of(5, []int{6, 7})
+        idx      = 0
+        expected = []interface{}{5, []int{6, 7}}
+    )
+
+    for iter.Next() {
+        assert.Equal(t, expected[idx], iter.Value())
+        idx++
+    }
+
+    assert.Equal(t, 2, idx)
+
+    func() {
+        defer func() {
+            assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+        }()
+
+        iter.Next()
+        assert.Fail(t, "Must panic")
+    }()
+....
+
+=== OfChildren constructor
+....
+    var (
+        iter     = OfChildren(5, []int{6, 7})
+        idx      = 0
+        expected = []int{5, 6, 7}
+    )
+
+    for iter.Next() {
+        assert.Equal(t, expected[idx], iter.Value())
+        idx++
+    }
+
+    assert.Equal(t, 3, idx)
+
+    func() {
+        defer func() {
+            assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+        }()
+
+        iter.Next()
+        assert.Fail(t, "Must panic")
+    }()
+....

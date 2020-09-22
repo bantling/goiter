@@ -441,3 +441,53 @@ func TestOfChildren(t *testing.T) {
 		assert.Fail(t, "Must panic")
 	}()
 }
+
+func TestForLoop(t *testing.T) {
+	func() {
+		var (
+			iter     = Of(5, []int{6, 7})
+			idx      = 0
+			expected = []interface{}{5, []int{6, 7}}
+		)
+
+		for iter.Next() {
+			assert.Equal(t, expected[idx], iter.Value())
+			idx++
+		}
+
+		assert.Equal(t, 2, idx)
+
+		func() {
+			defer func() {
+				assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			}()
+
+			iter.Next()
+			assert.Fail(t, "Must panic")
+		}()
+	}()
+
+	func() {
+		var (
+			iter     = OfChildren(5, []int{6, 7})
+			idx      = 0
+			expected = []int{5, 6, 7}
+		)
+
+		for iter.Next() {
+			assert.Equal(t, expected[idx], iter.Value())
+			idx++
+		}
+
+		assert.Equal(t, 3, idx)
+
+		func() {
+			defer func() {
+				assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			}()
+
+			iter.Next()
+			assert.Fail(t, "Must panic")
+		}()
+	}()
+}
