@@ -171,6 +171,56 @@ func TestSingleValueIterFunc(t *testing.T) {
 	assert.False(t, next)
 }
 
+func TestIterFunc(t *testing.T) {
+	// Nil Iter
+	iterFunc := IterFunc(nil)
+
+	_, next := iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// Empty Iter
+	iterFunc = IterFunc(Of())
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// Iter of a value
+	iterFunc = IterFunc(Of(1))
+
+	val, next := iterFunc()
+	assert.Equal(t, 1, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// Iter of two values
+	iterFunc = IterFunc(Of(1, 2))
+
+	val, next = iterFunc()
+	assert.Equal(t, 1, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, 2, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+}
+
 func TestChildrenIterFunc(t *testing.T) {
 	// Empty items
 	iterFunc := ChildrenIterFunc()
@@ -247,6 +297,28 @@ func TestChildrenIterFunc(t *testing.T) {
 	_, next = iterFunc()
 	assert.False(t, next)
 
+	// Empty *Iter
+	iterFunc = ChildrenIterFunc(Of())
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// One element *Iter
+	iterFunc = ChildrenIterFunc(Of(1))
+
+	val, next = iterFunc()
+	assert.Equal(t, 1, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
 	// One element
 	iterFunc = ChildrenIterFunc(reflect.ValueOf(5))
 
@@ -260,11 +332,11 @@ func TestChildrenIterFunc(t *testing.T) {
 	_, next = iterFunc()
 	assert.False(t, next)
 
-	// Empty Array/Slice/Map, element
-	iterFunc = ChildrenIterFunc([0]int{}, []int{}, map[int]int{}, 5)
+	// Empty Array/Slice/Map/*Iter, element
+	iterFunc = ChildrenIterFunc([0]int{}, []int{}, map[int]int{}, Of(), 6)
 
 	val, next = iterFunc()
-	assert.Equal(t, 5, val)
+	assert.Equal(t, 6, val)
 	assert.True(t, next)
 
 	_, next = iterFunc()
@@ -273,8 +345,8 @@ func TestChildrenIterFunc(t *testing.T) {
 	_, next = iterFunc()
 	assert.False(t, next)
 
-	// One element Array/Slice/Map, element
-	iterFunc = ChildrenIterFunc([1]int{1}, []int{2}, map[int]int{3: 4}, 5)
+	// One element Array/Slice/Map/*Iter, element
+	iterFunc = ChildrenIterFunc([1]int{1}, []int{2}, map[int]int{3: 4}, Of(5), 6)
 
 	val, next = iterFunc()
 	assert.Equal(t, 1, val)
@@ -290,6 +362,10 @@ func TestChildrenIterFunc(t *testing.T) {
 
 	val, next = iterFunc()
 	assert.Equal(t, 5, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, 6, val)
 	assert.True(t, next)
 
 	_, next = iterFunc()
@@ -414,8 +490,8 @@ func TestOfChildren(t *testing.T) {
 		assert.Fail(t, "Must panic")
 	}()
 
-	// Two items, three values
-	iter = OfChildren(5, []int{6, 7})
+	// Three items, four values
+	iter = OfChildren(5, []int{6, 7}, Of(8))
 
 	next = iter.Next()
 	assert.True(t, next)
@@ -428,6 +504,10 @@ func TestOfChildren(t *testing.T) {
 	next = iter.Next()
 	assert.True(t, next)
 	assert.Equal(t, 7, iter.Value())
+
+	next = iter.Next()
+	assert.True(t, next)
+	assert.Equal(t, 8, iter.Value())
 
 	next = iter.Next()
 	assert.False(t, next)

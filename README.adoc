@@ -15,7 +15,8 @@ There are several iterating functions provided that are based on reflect.Value.
 * ArraySliceIterFunc: iterates any type of array or slice non-recursively. Panics if value passed does not wrap an array or slice.
 * MapIterFunc: iterates any kind of map non-recursively, where next item is a KeyValue{Key interface{}, Value interface{}} instance. Panics if value passed does not wrap a map.
 * SingleValueIterFunc: iterates a single value, where first call to next returns next item = value, further calls return invalid, false. Array/slice/map values are just returned as one value.
-* ChildrenIterFunc: iterates any number of values, using ArraySliceIterFunc, MapIterFunc, and SingleValueIterFunc as appropriate.  
+* IterFunc: iterates a *Iter
+* ChildrenIterFunc: iterates any number of values, using ArraySliceIterFunc, MapIterFunc, SingleValueIterFunc, and IterFunc as appropriate.  
 
 == Iter struct
 
@@ -35,6 +36,9 @@ The Iter struct usses an iterating function to implement the iterator pattern in
 * NewIter accepts an iterating function
 * Of accepts a vararg of items which are iterated using ArraySliceIterFunc
 * OfChildren accepts a vararg of items which are iterated using ChildrenIterFunc
+
+Note that since OfChildren can iterate the values of a *Iter (by delegating to IterFunc),
+OfChildren can be used to join multiple *Iter into a single *Iter that iterates each *Iter passed in turn.
 
 == Examples (taken from unit tests)
 

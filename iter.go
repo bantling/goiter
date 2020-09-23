@@ -82,11 +82,30 @@ func SingleValueIterFunc(aVal reflect.Value) func() (interface{}, bool) {
 	}
 }
 
+// IterFunc returns an iterator func that iterates the values of an *Iter
+func IterFunc(iter *Iter) func() (interface{}, bool) {
+	theIter := iter
+
+	return func() (interface{}, bool) {
+		if theIter != nil {
+			if theIter.Next() {
+				return theIter.Value(), true
+			}
+
+			theIter = nil
+		}
+
+		return nil, false
+	}
+}
+
 // ChildrenIterFunc returns an iterator function that iterates the items passed, if any.
 // It is valid to not pass any items, the Iter will simply return false on first call to Next.
 // If an item is a reflect.Value instance, the wrapped value will be iterated.
 // If an item is a slice, the elements of the slice are iterated non-recursively.
 // If an item is a map, the key/value pairs of the map are iterated non-recursively, and returned as KeyValue objects.
+// If an item is an *Iter, it will be iterated until it is exhausted.
+// If an item is nil, it is ignored.
 func ChildrenIterFunc(items ...interface{}) func() (interface{}, bool) {
 	var (
 		num  = len(items)
@@ -133,6 +152,16 @@ func ChildrenIterFunc(items ...interface{}) func() (interface{}, bool) {
 				iter = ArraySliceIterFunc(itemVal)
 			case reflect.Map:
 				iter = MapIterFunc(itemVal)
+			case reflect.Ptr:
+				if itemVal.IsNil() {
+					// Try next item
+					idx++
+					continue
+				}
+
+				if iterObj, isa := itemVal.Interface().(*Iter); isa {
+					iter = IterFunc(iterObj)
+				}
 			default:
 				iter = SingleValueIterFunc(itemVal)
 			}
@@ -163,13 +192,13 @@ func NewIter(iter func() (interface{}, bool)) *Iter {
 }
 
 // Of constructs an Iter that iterates the items passed.
-// If any item is an array/slice/map, it will be handled the same as any other type - the whole array/slice/map will iterated as a single value.
+// If any item is an array/slice/map/*Iter, it will be handled the same as any other type - the whole array/slice/map/*Iter will iterated as a single value.
 func Of(items ...interface{}) *Iter {
 	return NewIter(ArraySliceIterFunc(reflect.ValueOf(items)))
 }
 
 // OfChildren constructs an Iter that iterates the children of the items passed.
-// If any item is an array/slice/map, then the values contained in it will be iterated non-recursively.
+// If any item is an array/slice/map/*Iter, then the values contained in it will be iterated non-recursively.
 // An item of any other type will just be iterated as a single value.
 func OfChildren(items ...interface{}) *Iter {
 	return NewIter(ChildrenIterFunc(items...))
