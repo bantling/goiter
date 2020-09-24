@@ -37,8 +37,10 @@ The Iter struct usses an iterating function to implement the iterator pattern in
 * Of accepts a vararg of items which are iterated using ArraySliceIterFunc
 * OfChildren accepts a vararg of items which are iterated using ChildrenIterFunc
 
-Note that since OfChildren can iterate the values of a *Iter (by delegating to IterFunc),
+Since OfChildren can iterate the values of an *Iter (by delegating to IterFunc),
 OfChildren can be used to join multiple *Iter into a single *Iter that iterates each *Iter passed in turn.
+
+OfChildren can also iterate the *Iter returned by types that implement the IterSupplier interface method Iter() *Iter.
 
 == Examples (taken from unit tests)
 
