@@ -99,13 +99,20 @@ func IterFunc(iter *Iter) func() (interface{}, bool) {
 	}
 }
 
+// IterSupplier is a supplier of an Iter
+type IterSupplier interface {
+	Iter() *Iter
+}
+
 // ChildrenIterFunc returns an iterator function that iterates the items passed, if any.
 // It is valid to not pass any items, the Iter will simply return false on first call to Next.
-// If an item is a reflect.Value instance, the wrapped value will be iterated.
-// If an item is a slice, the elements of the slice are iterated non-recursively.
-// If an item is a map, the key/value pairs of the map are iterated non-recursively, and returned as KeyValue objects.
-// If an item is an *Iter, it will be iterated until it is exhausted.
-// If an item is nil, it is ignored.
+// Items are handled as follows:
+// - A precheck will handle a reflect.Value the same as an unwrapped value
+// - Slice: the elements of the slice are iterated non-recursively
+// - Map: the key/value pairs of the map are iterated non-recursively, and returned as KeyValue objects
+// - Nil ptr: Skipped
+// - *Iter: iterated non-recursively.
+// - IterSupplier: the Iter() method is called to get an *Iter, which will be iterated.
 func ChildrenIterFunc(items ...interface{}) func() (interface{}, bool) {
 	var (
 		num  = len(items)
@@ -145,25 +152,30 @@ func ChildrenIterFunc(items ...interface{}) func() (interface{}, bool) {
 				itemVal = reflect.ValueOf(item)
 			}
 
-			switch itemVal.Kind() {
-			case reflect.Array:
-				fallthrough
-			case reflect.Slice:
-				iter = ArraySliceIterFunc(itemVal)
-			case reflect.Map:
-				iter = MapIterFunc(itemVal)
-			case reflect.Ptr:
-				if itemVal.IsNil() {
-					// Try next item
-					idx++
-					continue
-				}
+			if iterSupplierObj, isa := itemVal.Interface().(IterSupplier); isa {
+				// IterSupplier could be value or pointer receiver
+				iter = IterFunc(iterSupplierObj.Iter())
+			} else {
+				switch itemVal.Kind() {
+				case reflect.Array:
+					fallthrough
+				case reflect.Slice:
+					iter = ArraySliceIterFunc(itemVal)
+				case reflect.Map:
+					iter = MapIterFunc(itemVal)
+				case reflect.Ptr:
+					if itemVal.IsNil() {
+						// Try next item
+						idx++
+						continue
+					}
 
-				if iterObj, isa := itemVal.Interface().(*Iter); isa {
-					iter = IterFunc(iterObj)
+					if iterObj, isa := itemVal.Interface().(*Iter); isa {
+						iter = IterFunc(iterObj)
+					}
+				default:
+					iter = SingleValueIterFunc(itemVal)
 				}
-			default:
-				iter = SingleValueIterFunc(itemVal)
 			}
 			// Next iteration will now have a non-nil iter, which may be for an empty slice or map.
 			// We'll just keep going through items until we find a non-empty item or run out of items.

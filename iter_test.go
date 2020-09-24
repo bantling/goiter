@@ -7,6 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type TestIterSupplier struct {
+	bool
+}
+
+func (TestIterSupplier) Iter() *Iter {
+	return Of(10)
+}
+
 func TestArraySliceIterFunc(t *testing.T) {
 	// Empty array
 	iterFunc := ArraySliceIterFunc(reflect.ValueOf([0]int{}))
@@ -319,6 +327,19 @@ func TestChildrenIterFunc(t *testing.T) {
 	_, next = iterFunc()
 	assert.False(t, next)
 
+	// One element IterSupplier
+	iterFunc = ChildrenIterFunc(TestIterSupplier{})
+
+	val, next = iterFunc()
+	assert.Equal(t, 10, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
 	// One element
 	iterFunc = ChildrenIterFunc(reflect.ValueOf(5))
 
@@ -345,8 +366,8 @@ func TestChildrenIterFunc(t *testing.T) {
 	_, next = iterFunc()
 	assert.False(t, next)
 
-	// One element Array/Slice/Map/*Iter, element
-	iterFunc = ChildrenIterFunc([1]int{1}, []int{2}, map[int]int{3: 4}, Of(5), 6)
+	// One element Array/Slice/Map/*Iter/IterSupplier, element
+	iterFunc = ChildrenIterFunc([1]int{1}, []int{2}, map[int]int{3: 4}, Of(5), TestIterSupplier{}, 6)
 
 	val, next = iterFunc()
 	assert.Equal(t, 1, val)
@@ -362,6 +383,10 @@ func TestChildrenIterFunc(t *testing.T) {
 
 	val, next = iterFunc()
 	assert.Equal(t, 5, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, 10, val)
 	assert.True(t, next)
 
 	val, next = iterFunc()
