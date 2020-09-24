@@ -20,7 +20,7 @@ There are several iterating functions provided that are based on reflect.Value.
 
 == Iter struct
 
-The Iter struct usses an iterating function to implement the iterator pattern in an idiomatic Go fashion:
+The Iter struct uses an iterating function to implement the iterator pattern in an idiomatic Go fashion:
 
 * Next is used to advance the iterator
 ** returns true if there is another item
