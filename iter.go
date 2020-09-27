@@ -200,13 +200,13 @@ func NewIter(iter func() (interface{}, bool)) *Iter {
 }
 
 // Of constructs an Iter that iterates the items passed.
-// If any item is an array/slice/map/*Iter, it will be handled the same as any other type - the whole array/slice/map/*Iter will iterated as a single value.
+// If any item is an array/slice/map/Iterable, it will be handled the same as any other type - the whole array/slice/map/Iterable will iterated as a single value.
 func Of(items ...interface{}) *Iter {
 	return NewIter(ArraySliceIterFunc(reflect.ValueOf(items)))
 }
 
 // OfChildren constructs an Iter that iterates the children of the items passed.
-// If any item is an array/slice/map/*Iter, then the values contained in it will be iterated non-recursively.
+// If any item is an array/slice/map/Iterable, then the values contained in it will be iterated non-recursively.
 // An item of any other type will just be iterated as a single value.
 func OfChildren(items ...interface{}) *Iter {
 	return NewIter(ChildrenIterFunc(items...))
