@@ -31,6 +31,12 @@ The Iter struct uses an iterating function to implement the iterator pattern in 
 ** panics if called after Next has exhausted the iterating function
 ** panics if Next has not been called since last call to Value
 
+* Split splits the items in the iterator into slices of at most size n.
+** panics if n == 0
+** panics if called after Next has exhausted the iterating function
+** returns a two dimensional slice of slices
+** if the iter is empty, returns an allocated empty slice of slices.
+
 == Constructors
 
 * NewIter accepts an iterating function

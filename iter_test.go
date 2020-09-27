@@ -707,4 +707,14 @@ func TestSplit(t *testing.T) {
 	iter = Of(1, 2)
 	split = iter.Split(1)
 	assert.Equal(t, [][]interface{}{{1}, {2}}, split)
+
+	// Die if n < 1
+	func() {
+		defer func() {
+			assert.Equal(t, "n must be > 0", recover())
+		}()
+
+		iter.Split(0)
+		assert.Fail(t, "Must panic")
+	}()
 }
