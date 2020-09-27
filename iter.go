@@ -253,6 +253,43 @@ func (i *Iter) Value() interface{} {
 
 // Iter is the Iterable interface.
 // By implementing Iterable, algorithms can be written against only Iterable, and accept *Iter or Iterable instances.
+// Returns pointer, as all callers to this iter are exhausting the same set of data.
+// As a rule, there should only be one owner of this iterator.
 func (i *Iter) Iter() *Iter {
 	return i
+}
+
+// Split the iterator into slices of at most size n.
+// This operation will exhaust the iter, and will panic if Next() or Value() is called after it.
+// Panics if n = 0.
+func (i *Iter) Split(n uint) [][]interface{} {
+	if n == 0 {
+		panic("n must be > 0")
+	}
+
+	var (
+		split   = [][]interface{}{}
+		current = make([]interface{}, 0, n)
+		idx     uint
+	)
+
+	for i.Next() {
+		val := i.Value()
+		current = append(current, val)
+		idx++
+
+		if idx == n {
+			split = append(split, current)
+			current = make([]interface{}, 0, n)
+			idx = 0
+		}
+	}
+
+	// If len == 0, must be a corner case: no items, or an exact multiple of n items.
+	// Otherwise, current contains a partial slice of the last < n items.
+	if len(current) > 0 {
+		split = append(split, current)
+	}
+
+	return split
 }

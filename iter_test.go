@@ -626,3 +626,85 @@ func TestIterIsIterable(t *testing.T) {
 		assert.Fail(t, "Must panic")
 	}()
 }
+
+func TestSplit(t *testing.T) {
+	// Split with n = 5 items
+	var (
+		iter  = Of()
+		split = iter.Split(5)
+	)
+	assert.Equal(t, [][]interface{}{}, split)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	iter = Of(1)
+	split = iter.Split(5)
+	assert.Equal(t, [][]interface{}{{1}}, split)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	iter = Of(1, 2, 3, 4)
+	split = iter.Split(5)
+	assert.Equal(t, [][]interface{}{{1, 2, 3, 4}}, split)
+
+	iter = Of(1, 2, 3, 4, 5)
+	split = iter.Split(5)
+	assert.Equal(t, [][]interface{}{{1, 2, 3, 4, 5}}, split)
+
+	iter = Of(1, 2, 3, 4, 5, 6)
+	split = iter.Split(5)
+	assert.Equal(t, [][]interface{}{{1, 2, 3, 4, 5}, {6}}, split)
+
+	iter = Of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	split = iter.Split(5)
+	assert.Equal(t, [][]interface{}{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}}, split)
+
+	iter = Of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+	split = iter.Split(5)
+	assert.Equal(t, [][]interface{}{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}, {11}}, split)
+
+	// Split with n = 1 items corner case
+	iter = Of()
+	split = iter.Split(1)
+	assert.Equal(t, [][]interface{}{}, split)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	iter = Of(1)
+	split = iter.Split(1)
+	assert.Equal(t, [][]interface{}{{1}}, split)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	iter = Of(1, 2)
+	split = iter.Split(1)
+	assert.Equal(t, [][]interface{}{{1}, {2}}, split)
+}
