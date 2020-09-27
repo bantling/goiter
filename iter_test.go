@@ -596,3 +596,33 @@ func TestForLoop(t *testing.T) {
 		}()
 	}()
 }
+
+func TestIterIsIterable(t *testing.T) {
+	var (
+		iter     = Of(0)
+		iterable = Iterable(iter)
+		it       = iterable.Iter()
+	)
+	assert.True(t, it == iter)
+	assert.True(t, it.Next())
+	assert.Equal(t, 0, it.Value())
+	assert.False(t, it.Next())
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		it.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+}

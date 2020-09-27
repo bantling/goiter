@@ -99,8 +99,8 @@ func IterFunc(iter *Iter) func() (interface{}, bool) {
 	}
 }
 
-// IterSupplier is a supplier of an Iter
-type IterSupplier interface {
+// Iterable is a supplier of an Iter
+type Iterable interface {
 	Iter() *Iter
 }
 
@@ -111,8 +111,7 @@ type IterSupplier interface {
 // - Slice: the elements of the slice are iterated non-recursively
 // - Map: the key/value pairs of the map are iterated non-recursively, and returned as KeyValue objects
 // - Nil ptr: Skipped
-// - *Iter: iterated non-recursively.
-// - IterSupplier: the Iter() method is called to get an *Iter, which will be iterated.
+// - Iterable: the Iter() method is called to get an *Iter, which will be iterated.
 func ChildrenIterFunc(items ...interface{}) func() (interface{}, bool) {
 	var (
 		num  = len(items)
@@ -152,9 +151,9 @@ func ChildrenIterFunc(items ...interface{}) func() (interface{}, bool) {
 				itemVal = reflect.ValueOf(item)
 			}
 
-			if iterSupplierObj, isa := itemVal.Interface().(IterSupplier); isa {
+			if iterableObj, isa := itemVal.Interface().(Iterable); isa {
 				// IterSupplier could be value or pointer receiver
-				iter = IterFunc(iterSupplierObj.Iter())
+				iter = IterFunc(iterableObj.Iter())
 			} else {
 				switch itemVal.Kind() {
 				case reflect.Array:
@@ -169,10 +168,7 @@ func ChildrenIterFunc(items ...interface{}) func() (interface{}, bool) {
 						idx++
 						continue
 					}
-
-					if iterObj, isa := itemVal.Interface().(*Iter); isa {
-						iter = IterFunc(iterObj)
-					}
+					fallthrough
 				default:
 					iter = SingleValueIterFunc(itemVal)
 				}
@@ -253,4 +249,10 @@ func (i *Iter) Value() interface{} {
 	// Clear nextCalled flag
 	i.nextCalled = false
 	return i.value
+}
+
+// Iter is the Iterable interface.
+// By implementing Iterable, algorithms can be written against only Iterable, and accept Iter or Iterable instances.
+func (i *Iter) Iter() *Iter {
+	return i
 }
