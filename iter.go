@@ -252,7 +252,7 @@ func (i *Iter) Value() interface{} {
 }
 
 // Iter is the Iterable interface.
-// By implementing Iterable, algorithms can be written against only Iterable, and accept Iter or Iterable instances.
+// By implementing Iterable, algorithms can be written against only Iterable, and accept *Iter or Iterable instances.
 func (i *Iter) Iter() *Iter {
 	return i
 }
