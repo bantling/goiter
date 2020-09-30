@@ -20,22 +20,28 @@ There are several iterating functions provided that are based on reflect.Value.
 
 == Iter struct
 
-The Iter struct uses an iterating function to implement the iterator pattern in an idiomatic Go fashion:
+The Iter struct uses an iterating function to implement the iterator pattern in an idiomatic Go fashion, with some extra utility methods:
 
 * Next is used to advance the iterator
 ** returns true if there is another item
 ** returns false if the iterating function has just been exhausted
 ** panics if the last call to Next exhausted the iterating function
-
 * Value returns the value iterated by last call to Next
 ** panics if called after Next has exhausted the iterating function
 ** panics if Next has not been called since last call to Value
-
-* Split splits the items in the iterator into slices of at most size n.
+* SplitIntoRows splits the items into slices of at most n columns
 ** panics if n == 0
 ** panics if called after Next has exhausted the iterating function
 ** returns a two dimensional slice of slices
-** if the iter is empty, returns an allocated empty slice of slices.
+** if the iter is empty, returns an allocated empty slice of slices
+* SplitIntoColumns splits the items into slices of at most n rows
+** panics if n == 0
+** panics if called after Next has exhausted the iterating function
+** returns a two dimensional slice of slices
+** if the iter is empty, returns an allocated empty slice of slices
+* ToSlice collects all the items into a single slice
+** panics if called after Next has exhausted the iterating function
+** if the iter is empty, returns an allocated empty slice
 
 == Constructors
 

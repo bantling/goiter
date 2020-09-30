@@ -627,11 +627,11 @@ func TestIterIsIterable(t *testing.T) {
 	}()
 }
 
-func TestSplit(t *testing.T) {
-	// Split with n = 5 items
+func TestSplitIntoRows(t *testing.T) {
+	// Split with n = 5 items per subslice
 	var (
 		iter  = Of()
-		split = iter.Split(5)
+		split = iter.SplitIntoRows(5)
 	)
 	assert.Equal(t, [][]interface{}{}, split)
 
@@ -645,7 +645,7 @@ func TestSplit(t *testing.T) {
 	}()
 
 	iter = Of(1)
-	split = iter.Split(5)
+	split = iter.SplitIntoRows(5)
 	assert.Equal(t, [][]interface{}{{1}}, split)
 
 	func() {
@@ -658,28 +658,28 @@ func TestSplit(t *testing.T) {
 	}()
 
 	iter = Of(1, 2, 3, 4)
-	split = iter.Split(5)
+	split = iter.SplitIntoRows(5)
 	assert.Equal(t, [][]interface{}{{1, 2, 3, 4}}, split)
 
 	iter = Of(1, 2, 3, 4, 5)
-	split = iter.Split(5)
+	split = iter.SplitIntoRows(5)
 	assert.Equal(t, [][]interface{}{{1, 2, 3, 4, 5}}, split)
 
 	iter = Of(1, 2, 3, 4, 5, 6)
-	split = iter.Split(5)
+	split = iter.SplitIntoRows(5)
 	assert.Equal(t, [][]interface{}{{1, 2, 3, 4, 5}, {6}}, split)
 
 	iter = Of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-	split = iter.Split(5)
+	split = iter.SplitIntoRows(5)
 	assert.Equal(t, [][]interface{}{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}}, split)
 
 	iter = Of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
-	split = iter.Split(5)
+	split = iter.SplitIntoRows(5)
 	assert.Equal(t, [][]interface{}{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 10}, {11}}, split)
 
-	// Split with n = 1 items corner case
+	// Split with n = 1 items per subslice corner case
 	iter = Of()
-	split = iter.Split(1)
+	split = iter.SplitIntoRows(1)
 	assert.Equal(t, [][]interface{}{}, split)
 
 	func() {
@@ -692,7 +692,7 @@ func TestSplit(t *testing.T) {
 	}()
 
 	iter = Of(1)
-	split = iter.Split(1)
+	split = iter.SplitIntoRows(1)
 	assert.Equal(t, [][]interface{}{{1}}, split)
 
 	func() {
@@ -705,16 +705,125 @@ func TestSplit(t *testing.T) {
 	}()
 
 	iter = Of(1, 2)
-	split = iter.Split(1)
+	split = iter.SplitIntoRows(1)
 	assert.Equal(t, [][]interface{}{{1}, {2}}, split)
 
 	// Die if n < 1
 	func() {
 		defer func() {
-			assert.Equal(t, "n must be > 0", recover())
+			assert.Equal(t, "cols must be > 0", recover())
 		}()
 
-		iter.Split(0)
+		iter.SplitIntoRows(0)
+		assert.Fail(t, "Must panic")
+	}()
+}
+
+func TestSplitIntoColumns(t *testing.T) {
+	// Split with n = 5 columns per subslice
+	var (
+		iter  = Of()
+		split = iter.SplitIntoColumns(5)
+	)
+	assert.Equal(t, [][]interface{}{}, split)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	iter = Of(1)
+	split = iter.SplitIntoColumns(5)
+	assert.Equal(t, [][]interface{}{{1}}, split)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	iter = Of(1, 2, 3, 4)
+	split = iter.SplitIntoColumns(5)
+	assert.Equal(t, [][]interface{}{{1}, {2}, {3}, {4}}, split)
+
+	iter = Of(1, 2, 3, 4, 5)
+	split = iter.SplitIntoColumns(5)
+	assert.Equal(t, [][]interface{}{{1}, {2}, {3}, {4}, {5}}, split)
+
+	iter = Of(1, 2, 3, 4, 5, 6)
+	split = iter.SplitIntoColumns(5)
+	assert.Equal(t, [][]interface{}{{1, 6}, {2}, {3}, {4}, {5}}, split)
+
+	iter = Of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	split = iter.SplitIntoColumns(5)
+	assert.Equal(t, [][]interface{}{{1, 6}, {2, 7}, {3, 8}, {4, 9}, {5, 10}}, split)
+
+	iter = Of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+	split = iter.SplitIntoColumns(5)
+	assert.Equal(t, [][]interface{}{{1, 6, 11}, {2, 7}, {3, 8}, {4, 9}, {5, 10}}, split)
+
+	// Split with n = 1 columns per subslice corner case
+	iter = Of()
+	split = iter.SplitIntoColumns(1)
+	assert.Equal(t, [][]interface{}{}, split)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	iter = Of(1)
+	split = iter.SplitIntoColumns(1)
+	assert.Equal(t, [][]interface{}{{1}}, split)
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	iter = Of(1, 2)
+	split = iter.SplitIntoColumns(1)
+	assert.Equal(t, [][]interface{}{{1, 2}}, split)
+
+	// Die if n < 1
+	func() {
+		defer func() {
+			assert.Equal(t, "rows must be > 0", recover())
+		}()
+
+		iter.SplitIntoColumns(0)
+		assert.Fail(t, "Must panic")
+	}()
+}
+
+func TestToSlice(t *testing.T) {
+	assert.Equal(t, []interface{}{}, Of().ToSlice())
+	assert.Equal(t, []interface{}{1}, Of(1).ToSlice())
+	assert.Equal(t, []interface{}{1, 2}, Of(1, 2).ToSlice())
+
+	iter := Of()
+	iter.ToSlice()
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
 		assert.Fail(t, "Must panic")
 	}()
 }

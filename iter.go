@@ -214,22 +214,22 @@ func OfChildren(items ...interface{}) *Iter {
 
 // Next returns true if there is another item to be read by Value.
 // Once Next returns false, further calls to Next or Value panic.
-func (i *Iter) Next() bool {
+func (it *Iter) Next() bool {
 	// Die if iterator already exhausted
-	if i.iter == nil {
+	if it.iter == nil {
 		panic("Iter.Next called on exhausted iterator")
 	}
 
 	// Try to get next item
-	if value, haveIt := i.iter(); haveIt {
+	if value, haveIt := it.iter(); haveIt {
 		// If we have it, keep the value for call to Value() and return true
-		i.nextCalled = true
-		i.value = value
+		it.nextCalled = true
+		it.value = value
 		return true
 	}
 
 	// First call with no more items, mark done and return false
-	i.iter = nil
+	it.iter = nil
 	return false
 }
 
@@ -237,59 +237,109 @@ func (i *Iter) Next() bool {
 // In the case of iterating a map, each value will be returned as a KeyValue instance, passed by value.
 // Panics if the iterator is exhausted.
 // Panics if Next has not been called since the last time Value was called.
-func (i *Iter) Value() interface{} {
-	if i.iter == nil {
+func (it *Iter) Value() interface{} {
+	if it.iter == nil {
 		panic("Iter.Value called on exhausted iteraror")
 	}
 
-	if !i.nextCalled {
+	if !it.nextCalled {
 		panic("Iter.Next has to be called before iter.Value")
 	}
 
 	// Clear nextCalled flag
-	i.nextCalled = false
-	return i.value
+	it.nextCalled = false
+	return it.value
 }
 
 // Iter is the Iterable interface.
 // By implementing Iterable, algorithms can be written against only Iterable, and accept *Iter or Iterable instances.
 // Returns pointer, as all callers to this iter are exhausting the same set of data.
 // As a rule, there should only be one owner of this iterator.
-func (i *Iter) Iter() *Iter {
-	return i
+func (it *Iter) Iter() *Iter {
+	return it
 }
 
-// Split the iterator into slices of at most size n.
-// This operation will exhaust the iter, and will panic if Next() or Value() is called after it.
-// Panics if n = 0.
-func (i *Iter) Split(n uint) [][]interface{} {
-	if n == 0 {
-		panic("n must be > 0")
+// SplitIntoRows splits the iterator into rows of at most the number of columns specified.
+// This operation will exhaust the iter.
+// Panics if the iter has already been exhausted.
+// Panics if cols = 0.
+func (it *Iter) SplitIntoRows(cols uint) [][]interface{} {
+	if cols == 0 {
+		panic("cols must be > 0")
 	}
 
 	var (
-		split   = [][]interface{}{}
-		current = make([]interface{}, 0, n)
-		idx     uint
+		split = [][]interface{}{}
+		row   = make([]interface{}, 0, cols)
+		idx   uint
 	)
 
-	for i.Next() {
-		val := i.Value()
-		current = append(current, val)
+	for it.Next() {
+		val := it.Value()
+		row = append(row, val)
 		idx++
 
-		if idx == n {
-			split = append(split, current)
-			current = make([]interface{}, 0, n)
+		if idx == cols {
+			split = append(split, row)
+			row = make([]interface{}, 0, cols)
 			idx = 0
 		}
 	}
 
 	// If len == 0, must be a corner case: no items, or an exact multiple of n items.
-	// Otherwise, current contains a partial slice of the last < n items.
-	if len(current) > 0 {
-		split = append(split, current)
+	// Otherwise, row contains a partial slice of the last < n items.
+	if len(row) > 0 {
+		split = append(split, row)
 	}
 
 	return split
+}
+
+// SplitIntoColumns splits the iterator into columns with at most the number of rows specified.
+// This method is simply the transpose operation of SplitIntoRows.
+// This operation will exhaust the iter.
+// Panics if the iter has already been exhausted.
+// Panics if rows = 0.
+func (it *Iter) SplitIntoColumns(rows uint) [][]interface{} {
+	if rows == 0 {
+		panic("rows must be > 0")
+	}
+
+	var (
+		split = [][]interface{}{}
+		idx   uint
+	)
+
+	// Start by creating up to the specified number of rows with one element each
+	for i := uint(0); i < rows; i++ {
+		if !it.Next() {
+			// Less elements than specified number of rows, return the one element rows we have
+			return split
+		}
+
+		split = append(split, []interface{}{it.Value()})
+	}
+
+	// Populate columns top to bottom with remaining elements
+	for it.Next() {
+		split[idx] = append(split[idx], it.Value())
+		idx++
+
+		if idx == rows {
+			idx = 0
+		}
+	}
+
+	return split
+}
+
+// ToSlice collects the elements into a slice
+func (it *Iter) ToSlice() []interface{} {
+	slice := []interface{}{}
+
+	for it.Next() {
+		slice = append(slice, it.Value())
+	}
+
+	return slice
 }
