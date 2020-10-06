@@ -28,6 +28,48 @@ func ArraySliceIterFunc(arraySlice reflect.Value) func() (interface{}, bool) {
 	}
 }
 
+// Iterable is a supplier of an Iter
+type Iterable interface {
+	Iter() *Iter
+}
+
+// IterablesFunc iterates the values of any number of Iterables in the order passed
+func IterablesFunc(iterables []Iterable) func() (interface{}, bool) {
+	var (
+		num         = len(iterables)
+		idx         = 0
+		theIterable Iterable
+		theIter     *Iter
+	)
+
+	return func() (interface{}, bool) {
+		// Continue to return values from current iter until it is empty
+		if theIter != nil {
+			if theIter.Next() {
+				return theIter.Value(), true
+			}
+
+			// Nilify current iter once it is empty
+			theIter = nil
+		}
+
+		// Search any remaining iters for the next non-nil non-empty iter, if one exists
+		for (theIter == nil) && (idx < num) {
+			if theIterable, idx = iterables[idx], idx+1; theIterable != nil {
+				if theIter = theIterable.Iter(); (theIter != nil) && theIter.Next() {
+					return theIter.Value(), true
+				}
+			}
+
+			// Nilify iter in case it is non-nil and empty
+			theIter = nil
+		}
+
+		// No values left to iterate
+		return nil, false
+	}
+}
+
 // KeyValue contains a key value pair from a map
 type KeyValue struct {
 	Key   interface{}
@@ -67,6 +109,11 @@ func MapIterFunc(aMap reflect.Value) func() (interface{}, bool) {
 	}
 }
 
+// NoValueIterFunc always returns (nil, false)
+func NoValueIterFunc() (interface{}, bool) {
+	return nil, false
+}
+
 // SingleValueIterFunc iterates a single value
 func SingleValueIterFunc(aVal reflect.Value) func() (interface{}, bool) {
 	done := false
@@ -82,100 +129,31 @@ func SingleValueIterFunc(aVal reflect.Value) func() (interface{}, bool) {
 	}
 }
 
-// IterFunc returns an iterator func that iterates the values of an *Iter
-func IterFunc(iter *Iter) func() (interface{}, bool) {
-	theIter := iter
-
-	return func() (interface{}, bool) {
-		if theIter != nil {
-			if theIter.Next() {
-				return theIter.Value(), true
-			}
-
-			theIter = nil
+// ElementsIterFunc returns an iterator function that iterates the elements of the item passed.
+// The item is handled as follows:
+// - Array or Slice: returns ArraySliceIterFunc(item)
+// - Iterable: returns IterFunc(item)
+// - Map: returns MapIterFunc(item)
+// - Nil ptr: returns NoValueIterFunc
+// - Otherwise returns SingleValueIterFunc(item)
+func ElementsIterFunc(item reflect.Value) func() (interface{}, bool) {
+	switch item.Kind() {
+	case reflect.Array:
+		fallthrough
+	case reflect.Slice:
+		return ArraySliceIterFunc(item)
+	case reflect.Map:
+		return MapIterFunc(item)
+	default:
+		if iterableObj, isa := item.Interface().(Iterable); isa {
+			return IterablesFunc([]Iterable{iterableObj})
 		}
 
-		return nil, false
-	}
-}
-
-// Iterable is a supplier of an Iter
-type Iterable interface {
-	Iter() *Iter
-}
-
-// ChildrenIterFunc returns an iterator function that iterates the items passed, if any.
-// It is valid to not pass any items, the Iter will simply return false on first call to Next.
-// Items are handled as follows:
-// - A precheck will handle a reflect.Value the same as an unwrapped value
-// - Slice: the elements of the slice are iterated non-recursively
-// - Map: the key/value pairs of the map are iterated non-recursively, and returned as KeyValue objects
-// - Nil ptr: Skipped
-// - Iterable: the Iter() method is called to get an *Iter, which will be iterated.
-func ChildrenIterFunc(items ...interface{}) func() (interface{}, bool) {
-	var (
-		num  = len(items)
-		idx  = 0
-		iter func() (interface{}, bool)
-	)
-
-	return func() (interface{}, bool) {
-		for {
-			if iter != nil {
-				// Try getting next value of current item being iterated
-				if val, haveValue := iter(); haveValue {
-					// Have another value, return it
-					return val, true
-				}
-
-				// Exhausted current iter, try next item
-				iter = nil
-				idx++
-			}
-
-			// iter must be nil
-			if idx == num {
-				// Exhausted all items - don't care how many calls are made once exhausted
-				return nil, false
-			}
-
-			// CurrentIter must be nil or exhausted
-			// Need to get the iterator func for value(s) of the next item passed
-			var (
-				item    = items[idx]
-				itemVal reflect.Value
-				isa     bool
-			)
-
-			if itemVal, isa = item.(reflect.Value); !isa {
-				itemVal = reflect.ValueOf(item)
-			}
-
-			if iterableObj, isa := itemVal.Interface().(Iterable); isa {
-				// IterSupplier could be value or pointer receiver
-				iter = IterFunc(iterableObj.Iter())
-			} else {
-				switch itemVal.Kind() {
-				case reflect.Array:
-					fallthrough
-				case reflect.Slice:
-					iter = ArraySliceIterFunc(itemVal)
-				case reflect.Map:
-					iter = MapIterFunc(itemVal)
-				case reflect.Ptr:
-					if itemVal.IsNil() {
-						// Try next item
-						idx++
-						continue
-					}
-					fallthrough
-				default:
-					iter = SingleValueIterFunc(itemVal)
-				}
-			}
-			// Next iteration will now have a non-nil iter, which may be for an empty slice or map.
-			// We'll just keep going through items until we find a non-empty item or run out of items.
+		if (item.Kind() == reflect.Ptr) && item.IsNil() {
+			return NoValueIterFunc
 		}
+
+		return SingleValueIterFunc(item)
 	}
 }
 
@@ -205,11 +183,20 @@ func Of(items ...interface{}) *Iter {
 	return NewIter(ArraySliceIterFunc(reflect.ValueOf(items)))
 }
 
-// OfChildren constructs an Iter that iterates the children of the items passed.
-// If any item is an array/slice/map/Iterable, then the values contained in it will be iterated non-recursively.
-// An item of any other type will just be iterated as a single value.
-func OfChildren(items ...interface{}) *Iter {
-	return NewIter(ChildrenIterFunc(items...))
+// OfElements constructs an Iter that iterates the elements of the item passed.
+// See ElementsIterFunc for details of how different types are handled.
+func OfElements(item interface{}) *Iter {
+	if item == nil {
+		// Can't call reflect.ValueOf(nil)
+		return NewIter(NoValueIterFunc)
+	}
+
+	return NewIter(ElementsIterFunc(reflect.ValueOf(item)))
+}
+
+// OfIterables constructs an Iter that iterates each Iterable passed.
+func OfIterables(iterables ...Iterable) *Iter {
+	return NewIter(IterablesFunc(iterables))
 }
 
 // Next returns true if there is another item to be read by Value.
@@ -311,7 +298,7 @@ func (it *Iter) SplitIntoColumns(rows uint) [][]interface{} {
 	)
 
 	// Start by creating up to the specified number of rows with one element each
-	for i := uint(0); i < rows; i++ {
+	for idx = 0; idx < rows; idx++ {
 		if !it.Next() {
 			// Less elements than specified number of rows, return the one element rows we have
 			return split
@@ -321,11 +308,10 @@ func (it *Iter) SplitIntoColumns(rows uint) [][]interface{} {
 	}
 
 	// Populate columns top to bottom with remaining elements
-	for it.Next() {
+	for idx = 0; it.Next(); {
 		split[idx] = append(split[idx], it.Value())
-		idx++
 
-		if idx == rows {
+		if idx++; idx == rows {
 			idx = 0
 		}
 	}
