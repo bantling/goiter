@@ -1,8 +1,11 @@
 package goiter
 
 import (
+	"fmt"
 	"reflect"
 )
+
+// ==== Iterator function generators
 
 // ArraySliceIterFunc iterates an array or slice
 func ArraySliceIterFunc(arraySlice reflect.Value) func() (interface{}, bool) {
@@ -157,6 +160,26 @@ func ElementsIterFunc(item reflect.Value) func() (interface{}, bool) {
 	}
 }
 
+// DelayedIterFunc returns a delayed interator function generator.
+// The first call of the resulting iterating function does the following:
+// 1. Executes the provided generator to get an iterating function
+// 2. Stores the iterating function
+// 3. Executes the iterating function to return the first result
+// Further calls of the resulting iterating function execute the saved iterating function and return the result
+func DelayedIterFunc(generator func() func() (interface{}, bool)) func() (interface{}, bool) {
+	var iterFunc func() (interface{}, bool)
+
+	return func() (interface{}, bool) {
+		if iterFunc == nil {
+			iterFunc = generator()
+		}
+
+		return iterFunc()
+	}
+}
+
+// ==== Iter
+
 // Iter is an iterator of values of an arbitrary type.
 // Technically, the values can be different types, but that is usually undesirable.
 type Iter struct {
@@ -238,6 +261,62 @@ func (it *Iter) Value() interface{} {
 	return it.value
 }
 
+// BoolValue reads the value and converts it to a bool.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a bool.
+func (it *Iter) BoolValue() bool {
+	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(true)).Bool()
+}
+
+// ComplexValue reads the value and converts it to a complex128.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to an complex128.
+func (it *Iter) ComplexValue() complex128 {
+	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(complex128(0))).Complex()
+}
+
+// FloatValue reads the value and converts it to a float64.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a float64.
+func (it *Iter) FloatValue() float64 {
+	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(float64(0))).Float()
+}
+
+// IntValue reads the value and converts it to an int64.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to an int64.
+func (it *Iter) IntValue() int64 {
+	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(int64(0))).Int()
+}
+
+// UintValue reads the value and converts it to a uint64.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a uint64.
+func (it *Iter) UintValue() uint64 {
+	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(uint64(0))).Uint()
+}
+
+// StringValue reads the value and converts it to a string.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a string.
+func (it *Iter) StringValue() string {
+	return fmt.Sprintf("%s", reflect.ValueOf(it.Value()).Convert(reflect.TypeOf("")))
+}
+
+// ValueOfType reads the value and converts it to a value with the same type as the given value.
+// EG, if an int is passed, it converts the value to an int.
+// The result will have to be type asserted.
+// Panics is value is nil.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to the type of the given value.
+func (it *Iter) ValueOfType(value interface{}) interface{} {
+	if value == nil {
+		panic("value cannot be nil")
+	}
+
+	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(value)).Interface()
+}
+
 // Iter is the Iterable interface.
 // By implementing Iterable, algorithms can be written against only Iterable, and accept *Iter or Iterable instances.
 // Returns pointer, as all callers to this iter are exhausting the same set of data.
@@ -262,8 +341,7 @@ func (it *Iter) SplitIntoRows(cols uint) [][]interface{} {
 	)
 
 	for it.Next() {
-		val := it.Value()
-		row = append(row, val)
+		row = append(row, it.Value())
 		idx++
 
 		if idx == cols {
@@ -280,6 +358,50 @@ func (it *Iter) SplitIntoRows(cols uint) [][]interface{} {
 	}
 
 	return split
+}
+
+// SplitIntoRowsOf is a version of SplitIntoRows where the slice type is the same as the type of the given value.
+// EG, if a value of type int is passed, a [][]int is returned.
+// This operation will exhaust the iter.
+// Panics if the iter has already been exhausted.
+// Panics if cols = 0.
+// Panics is value is nil.
+// Panics if any value is not convertible to the type of the given value.
+func (it *Iter) SplitIntoRowsOf(cols uint, value interface{}) interface{} {
+	if cols == 0 {
+		panic("cols must be > 0")
+	}
+
+	if value == nil {
+		panic("value cannot be nil")
+	}
+
+	var (
+		intCols = int(cols)
+		typ     = reflect.TypeOf(value)
+		split   = reflect.MakeSlice(reflect.SliceOf(reflect.SliceOf(typ)), 0, 0)
+		row     = reflect.MakeSlice(reflect.SliceOf(typ), 0, intCols)
+		idx     uint
+	)
+
+	for it.Next() {
+		row = reflect.Append(row, reflect.ValueOf(it.Value()).Convert(typ))
+		idx++
+
+		if idx == cols {
+			split = reflect.Append(split, row)
+			row = reflect.MakeSlice(reflect.SliceOf(typ), 0, intCols)
+			idx = 0
+		}
+	}
+
+	// If len == 0, must be a corner case: no items, or an exact multiple of n items.
+	// Otherwise, row contains a partial slice of the last < n items.
+	if row.Len() > 0 {
+		split = reflect.Append(split, row)
+	}
+
+	return split.Interface()
 }
 
 // SplitIntoColumns splits the iterator into columns with at most the number of rows specified.
@@ -319,6 +441,57 @@ func (it *Iter) SplitIntoColumns(rows uint) [][]interface{} {
 	return split
 }
 
+// SplitIntoColumnsOf is a version of SplitIntoColumns where the slice type is the same as the type of the given value.
+// This operation will exhaust the iter.
+// Panics if the iter has already been exhausted.
+// Panics if rows = 0.
+// Panics if value is nil.
+func (it *Iter) SplitIntoColumnsOf(rows uint, value interface{}) interface{} {
+	if rows == 0 {
+		panic("rows must be > 0")
+	}
+
+	if value == nil {
+		panic("value cannot be nil")
+	}
+
+	var (
+		intRows = int(rows)
+		typ     = reflect.TypeOf(value)
+		split   = reflect.MakeSlice(reflect.SliceOf(reflect.SliceOf(typ)), 0, 0)
+		idx     int
+	)
+
+	// Start by creating up to the specified number of rows with one element each
+	for idx = 0; idx < intRows; idx++ {
+		if !it.Next() {
+			// Less elements than specified number of rows, return the one element rows we have
+			return split.Interface()
+		}
+
+		split = reflect.Append(
+			split,
+			reflect.Append(
+				reflect.MakeSlice(reflect.SliceOf(typ), 0, 0),
+				reflect.ValueOf(it.Value()).Convert(typ),
+			),
+		)
+	}
+
+	// Populate columns top to bottom with remaining elements
+	for idx = 0; it.Next(); {
+		split.Index(idx).Set(
+			reflect.Append(split.Index(idx), reflect.ValueOf(it.Value()).Convert(typ)),
+		)
+
+		if idx++; idx == intRows {
+			idx = 0
+		}
+	}
+
+	return split.Interface()
+}
+
 // ToSlice collects the elements into a slice
 func (it *Iter) ToSlice() []interface{} {
 	slice := []interface{}{}
@@ -328,4 +501,25 @@ func (it *Iter) ToSlice() []interface{} {
 	}
 
 	return slice
+}
+
+// ToSliceOf returns a slice of all elements, where the slice type is the same as the type of the given value.
+// EG, if a value of type int is passed, a []int is returned.
+// Panics if value is nil.
+// Panics if any value is not convertible to the type of the given value.
+func (it *Iter) ToSliceOf(value interface{}) interface{} {
+	if value == nil {
+		panic("value cannot be nil")
+	}
+
+	var (
+		typ   = reflect.TypeOf(value)
+		slice = reflect.MakeSlice(reflect.SliceOf(typ), 0, 0)
+	)
+
+	for it.Next() {
+		slice = reflect.Append(slice, reflect.ValueOf(it.Value()).Convert(typ))
+	}
+
+	return slice.Interface()
 }

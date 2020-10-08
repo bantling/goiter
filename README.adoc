@@ -16,6 +16,7 @@ These functions may be designed so that once exhausted, they continue to return 
 * NoValueIterFunc: iterates nothing, always returns (nil, false)
 * SingleValueIterFunc: iterates a single value, where first call to next returns (value, true), further calls return (nil, false). Array/slice/map values are just returned as one value.
 * ElementsIterFunc: iterates the elements of a value, using each of the above funcs as appropriate.
+* DelayedIterFunc: accepts generator of no args that returns an iterating function, and delays generating the iterating function until the first iteration. 
 
 == Iter struct
 
@@ -28,19 +29,23 @@ The Iter struct uses an iterating function to implement the iterator pattern in 
 * Value returns the value iterated by last call to Next
 ** panics if called after Next has exhausted the iterating function
 ** panics if Next has not been called since last call to Value
+* BoolValue, ComplexValue, FloatValue, IntValue(), UintValue(), StringValue(), and ValueOfType() are the same as Value(), except they convert to a specific type 
 * SplitIntoRows splits the items into slices of at most n columns
 ** panics if n == 0
 ** panics if called after Next has exhausted the iterating function
 ** returns a two dimensional slice of slices
 ** if the iter is empty, returns an allocated empty slice of slices
+* SplitIntoRowsOf is the same as SplitIntoRows, except it returns a typed slice 
 * SplitIntoColumns splits the items into slices of at most n rows
 ** panics if n == 0
 ** panics if called after Next has exhausted the iterating function
 ** returns a two dimensional slice of slices
 ** if the iter is empty, returns an allocated empty slice of slices
+* SplitIntoColumnsOf is the same as SplitIntoColumns, except it returns a typed slice
 * ToSlice collects all the items into a single slice
 ** panics if called after Next has exhausted the iterating function
 ** if the iter is empty, returns an allocated empty slice
+* ToSliceOf is the same as ToSlice, except it returns a typed slice
 
 == Constructors
 
