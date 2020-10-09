@@ -604,86 +604,106 @@ func TestOfIterables(t *testing.T) {
 
 func TestBoolValue(t *testing.T) {
 	var (
-		v1   = bool(true)
-		iter = Of(v1)
+		iter = Of(true, false)
 	)
 
 	next := iter.Next()
 	assert.True(t, next)
-	var v2 bool = iter.BoolValue()
-	assert.Equal(t, bool(true), v2)
+	var v bool = iter.BoolValue()
+	assert.True(t, v)
+
+	v = iter.NextBoolValue()
+	assert.False(t, v)
 }
 
 func TestComplexValue(t *testing.T) {
 	var (
 		v1   = complex128(1 + 2i)
-		iter = Of(v1)
+		v2   = complex128(3 + 4i)
+		iter = Of(v1, v2)
 	)
 
 	next := iter.Next()
 	assert.True(t, next)
-	var v2 complex128 = iter.ComplexValue()
-	assert.Equal(t, complex128(1+2i), v2)
+	var v complex128 = iter.ComplexValue()
+	assert.Equal(t, v1, v)
+	v = iter.NextComplexValue()
+	assert.Equal(t, v2, v)
 }
 
 func TestFloatValue(t *testing.T) {
 	var (
 		v1   = float64(1.25)
-		iter = Of(v1)
+		v2   = float64(2.5)
+		iter = Of(v1, v2)
 	)
 
 	next := iter.Next()
 	assert.True(t, next)
-	var v2 float64 = iter.FloatValue()
-	assert.Equal(t, float64(1.25), v2)
+	var v float64 = iter.FloatValue()
+	assert.Equal(t, v1, v)
+	v = iter.NextFloatValue()
+	assert.Equal(t, v2, v)
 }
 
 func TestIntValue(t *testing.T) {
 	var (
 		v1   = int64(1)
-		iter = Of(v1)
+		v2   = int64(2)
+		iter = Of(v1, v2)
 	)
 
 	next := iter.Next()
 	assert.True(t, next)
-	var v2 int64 = iter.IntValue()
-	assert.Equal(t, int64(1), v2)
+	var v int64 = iter.IntValue()
+	assert.Equal(t, v1, v)
+	v = iter.NextIntValue()
+	assert.Equal(t, v2, v)
 }
 
 func TestUintValue(t *testing.T) {
 	var (
 		v1   = uint64(1)
-		iter = Of(v1)
+		v2   = uint64(2)
+		iter = Of(v1, v2)
 	)
 
 	next := iter.Next()
 	assert.True(t, next)
-	var v2 uint64 = iter.UintValue()
-	assert.Equal(t, uint64(1), v2)
+	var v uint64 = iter.UintValue()
+	assert.Equal(t, v1, v)
+	v = iter.NextUintValue()
+	assert.Equal(t, v2, v)
 }
 
 func TestStringValue(t *testing.T) {
 	var (
 		v1   = "1"
-		iter = Of(v1)
+		v2   = "2"
+		iter = Of(v1, v2)
 	)
 
 	next := iter.Next()
 	assert.True(t, next)
-	var v2 string = iter.StringValue()
-	assert.Equal(t, "1", v2)
+	var v string = iter.StringValue()
+	assert.Equal(t, v1, v)
+	v = iter.NextStringValue()
+	assert.Equal(t, v2, v)
 }
 
 func TestValueOfType(t *testing.T) {
 	var (
 		v1   = "1"
-		iter = Of(v1)
+		v2   = "2"
+		iter = Of(v1, v2)
 	)
 
 	next := iter.Next()
 	assert.True(t, next)
-	var v2 string = iter.ValueOfType("").(string)
-	assert.Equal(t, "1", v2)
+	var v string = iter.ValueOfType("").(string)
+	assert.Equal(t, v1, v)
+	v = iter.NextValueOfType("").(string)
+	assert.Equal(t, v2, v)
 }
 
 func TestForLoop(t *testing.T) {

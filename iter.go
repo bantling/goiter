@@ -261,11 +261,25 @@ func (it *Iter) Value() interface{} {
 	return it.value
 }
 
+// NextValue retrieves the next value for cases where you know the iterator has another value.
+// Panics if Next() or Value() panics.
+func (it *Iter) NextValue() interface{} {
+	it.Next()
+	return it.Value()
+}
+
 // BoolValue reads the value and converts it to a bool.
 // Panics if Value() method panics.
 // Panics if the value is not convertible to a bool.
 func (it *Iter) BoolValue() bool {
 	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(true)).Bool()
+}
+
+// NextBoolValue retrieves the next value as a bool for cases where you know the iterator has another value.
+// Panics if Next() or BoolValue() panics.
+func (it *Iter) NextBoolValue() bool {
+	it.Next()
+	return it.BoolValue()
 }
 
 // ComplexValue reads the value and converts it to a complex128.
@@ -275,11 +289,25 @@ func (it *Iter) ComplexValue() complex128 {
 	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(complex128(0))).Complex()
 }
 
+// NextComplexValue retrieves the next value as a complex128 for cases where you know the iterator has another value.
+// Panics if Next() or ComplexValue() panics.
+func (it *Iter) NextComplexValue() complex128 {
+	it.Next()
+	return it.ComplexValue()
+}
+
 // FloatValue reads the value and converts it to a float64.
 // Panics if Value() method panics.
 // Panics if the value is not convertible to a float64.
 func (it *Iter) FloatValue() float64 {
 	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(float64(0))).Float()
+}
+
+// NextFloatValue retrieves the next value as a float for cases where you know the iterator has another value.
+// Panics if Next() or FloatValue() panics.
+func (it *Iter) NextFloatValue() float64 {
+	it.Next()
+	return it.FloatValue()
 }
 
 // IntValue reads the value and converts it to an int64.
@@ -289,6 +317,13 @@ func (it *Iter) IntValue() int64 {
 	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(int64(0))).Int()
 }
 
+// NextIntValue retrieves the next value as an int64 for cases where you know the iterator has another value.
+// Panics if Next() or IntValue() panics.
+func (it *Iter) NextIntValue() int64 {
+	it.Next()
+	return it.IntValue()
+}
+
 // UintValue reads the value and converts it to a uint64.
 // Panics if Value() method panics.
 // Panics if the value is not convertible to a uint64.
@@ -296,11 +331,25 @@ func (it *Iter) UintValue() uint64 {
 	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(uint64(0))).Uint()
 }
 
+// NextUintValue retrieves the next value as a uint64 for cases where you know the iterator has another value.
+// Panics if Next() or UintValue() panics.
+func (it *Iter) NextUintValue() uint64 {
+	it.Next()
+	return it.UintValue()
+}
+
 // StringValue reads the value and converts it to a string.
 // Panics if Value() method panics.
 // Panics if the value is not convertible to a string.
 func (it *Iter) StringValue() string {
 	return fmt.Sprintf("%s", reflect.ValueOf(it.Value()).Convert(reflect.TypeOf("")))
+}
+
+// NextStringValue retrieves the next value as a string for cases where you know the iterator has another value.
+// Panics if Next() or StringValue() panics.
+func (it *Iter) NextStringValue() string {
+	it.Next()
+	return it.StringValue()
 }
 
 // ValueOfType reads the value and converts it to a value with the same type as the given value.
@@ -315,6 +364,13 @@ func (it *Iter) ValueOfType(value interface{}) interface{} {
 	}
 
 	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(value)).Interface()
+}
+
+// NextValueOfType retrieves the next value with the same type as the given value for cases where you know the iterator has another value.
+// Panics if Next() or ValueOfType() panics.
+func (it *Iter) NextValueOfType(value interface{}) interface{} {
+	it.Next()
+	return it.ValueOfType(value)
 }
 
 // Iter is the Iterable interface.
