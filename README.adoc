@@ -29,9 +29,11 @@ The Iter struct uses an iterating function to implement the iterator pattern in 
 * Value returns the value iterated by last call to Next
 ** panics if called after Next has exhausted the iterating function
 ** panics if Next has not been called since last call to Value
-* BoolValue, ComplexValue, FloatValue, IntValue, UintValue, StringValue, and ValueOfType are the same as Value, except they convert to a specific type
+* ValueOfType is the same as Value, except it converts to the same type as the type of the argument provided
 * NextValue returns the next value for cases where you know another value exists
-* NextBoolValue, NextComplexValue, NextFloatValue, NextIntValue, NextUintValue, NextStringValue, and NextValueOfType are the same as NextValue, except they convert to a specific type
+* NextValueOfType is the same as NextValue, except it converts to the same type as the type of the argument provided
+* BoolValue, Int*Value, Uint*Value, Float*Value, Complex*Value, and StringValue are the same as Value, except they convert to a specific type
+* NextBoolValue, NextInt*Value, NextUint*Value, NextFloat*Value, NextComplex*Value, and NextStringValue are the same as NextValue, except they convert to a specific type
 * SplitIntoRows splits the items into slices of at most n columns
 ** panics if n == 0
 ** panics if called after Next has exhausted the iterating function

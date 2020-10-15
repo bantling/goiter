@@ -602,95 +602,6 @@ func TestOfIterables(t *testing.T) {
 	}()
 }
 
-func TestBoolValue(t *testing.T) {
-	var (
-		iter = Of(true, false)
-	)
-
-	next := iter.Next()
-	assert.True(t, next)
-	var v bool = iter.BoolValue()
-	assert.True(t, v)
-
-	v = iter.NextBoolValue()
-	assert.False(t, v)
-}
-
-func TestComplexValue(t *testing.T) {
-	var (
-		v1   = complex128(1 + 2i)
-		v2   = complex128(3 + 4i)
-		iter = Of(v1, v2)
-	)
-
-	next := iter.Next()
-	assert.True(t, next)
-	var v complex128 = iter.ComplexValue()
-	assert.Equal(t, v1, v)
-	v = iter.NextComplexValue()
-	assert.Equal(t, v2, v)
-}
-
-func TestFloatValue(t *testing.T) {
-	var (
-		v1   = float64(1.25)
-		v2   = float64(2.5)
-		iter = Of(v1, v2)
-	)
-
-	next := iter.Next()
-	assert.True(t, next)
-	var v float64 = iter.FloatValue()
-	assert.Equal(t, v1, v)
-	v = iter.NextFloatValue()
-	assert.Equal(t, v2, v)
-}
-
-func TestIntValue(t *testing.T) {
-	var (
-		v1   = int64(1)
-		v2   = int64(2)
-		iter = Of(v1, v2)
-	)
-
-	next := iter.Next()
-	assert.True(t, next)
-	var v int64 = iter.IntValue()
-	assert.Equal(t, v1, v)
-	v = iter.NextIntValue()
-	assert.Equal(t, v2, v)
-}
-
-func TestUintValue(t *testing.T) {
-	var (
-		v1   = uint64(1)
-		v2   = uint64(2)
-		iter = Of(v1, v2)
-	)
-
-	next := iter.Next()
-	assert.True(t, next)
-	var v uint64 = iter.UintValue()
-	assert.Equal(t, v1, v)
-	v = iter.NextUintValue()
-	assert.Equal(t, v2, v)
-}
-
-func TestStringValue(t *testing.T) {
-	var (
-		v1   = "1"
-		v2   = "2"
-		iter = Of(v1, v2)
-	)
-
-	next := iter.Next()
-	assert.True(t, next)
-	var v string = iter.StringValue()
-	assert.Equal(t, v1, v)
-	v = iter.NextStringValue()
-	assert.Equal(t, v2, v)
-}
-
 func TestValueOfType(t *testing.T) {
 	var (
 		v1   = "1"
@@ -706,54 +617,248 @@ func TestValueOfType(t *testing.T) {
 	assert.Equal(t, v2, v)
 }
 
-func TestForLoop(t *testing.T) {
-	func() {
+func TestBoolValue(t *testing.T) {
+	var (
+		iter = Of(true, false)
+	)
+
+	next := iter.Next()
+	assert.True(t, next)
+	var v bool = iter.BoolValue()
+	assert.True(t, v)
+
+	v = iter.NextBoolValue()
+	assert.False(t, v)
+}
+
+func TestIntValue(t *testing.T) {
+	{
 		var (
-			iter     = Of(5, []int{6, 7})
-			idx      = 0
-			expected = []interface{}{5, []int{6, 7}}
+			v1   = 1
+			v2   = 2
+			iter = Of(v1, v2)
 		)
 
-		for iter.Next() {
-			assert.Equal(t, expected[idx], iter.Value())
-			idx++
-		}
+		next := iter.Next()
+		assert.True(t, next)
+		var v int = iter.IntValue()
+		assert.Equal(t, v1, v)
+		v = iter.NextIntValue()
+		assert.Equal(t, v2, v)
+	}
 
-		assert.Equal(t, 2, idx)
-
-		func() {
-			defer func() {
-				assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
-			}()
-
-			iter.Next()
-			assert.Fail(t, "Must panic")
-		}()
-	}()
-
-	func() {
+	{
 		var (
-			iter     *Iter
-			idx      = 0
-			expected = []int{5}
+			v1   = int8(1)
+			v2   = int8(2)
+			iter = Of(v1, v2)
 		)
 
-		for iter = OfElements(5); iter.Next(); {
-			assert.Equal(t, expected[idx], iter.Value())
-			idx++
-		}
+		next := iter.Next()
+		assert.True(t, next)
+		var v int8 = iter.Int8Value()
+		assert.Equal(t, v1, v)
+		v = iter.NextInt8Value()
+		assert.Equal(t, v2, v)
+	}
 
-		assert.Equal(t, 1, idx)
+	{
+		var (
+			v1   = int16(1)
+			v2   = int16(2)
+			iter = Of(v1, v2)
+		)
 
-		func() {
-			defer func() {
-				assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
-			}()
+		next := iter.Next()
+		assert.True(t, next)
+		var v int16 = iter.Int16Value()
+		assert.Equal(t, v1, v)
+		v = iter.NextInt16Value()
+		assert.Equal(t, v2, v)
+	}
 
-			iter.Next()
-			assert.Fail(t, "Must panic")
-		}()
-	}()
+	{
+		var (
+			v1   = int32(1)
+			v2   = int32(2)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v int32 = iter.Int32Value()
+		assert.Equal(t, v1, v)
+		v = iter.NextInt32Value()
+		assert.Equal(t, v2, v)
+	}
+
+	{
+		var (
+			v1   = int64(1)
+			v2   = int64(2)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v int64 = iter.Int64Value()
+		assert.Equal(t, v1, v)
+		v = iter.NextInt64Value()
+		assert.Equal(t, v2, v)
+	}
+}
+
+func TestUintValue(t *testing.T) {
+	{
+		var (
+			v1   = uint(1)
+			v2   = uint(2)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v uint = iter.UintValue()
+		assert.Equal(t, v1, v)
+		v = iter.NextUintValue()
+		assert.Equal(t, v2, v)
+	}
+	{
+		var (
+			v1   = uint8(1)
+			v2   = uint8(2)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v uint8 = iter.Uint8Value()
+		assert.Equal(t, v1, v)
+		v = iter.NextUint8Value()
+		assert.Equal(t, v2, v)
+	}
+	{
+		var (
+			v1   = uint16(1)
+			v2   = uint16(2)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v uint16 = iter.Uint16Value()
+		assert.Equal(t, v1, v)
+		v = iter.NextUint16Value()
+		assert.Equal(t, v2, v)
+	}
+	{
+		var (
+			v1   = uint32(1)
+			v2   = uint32(2)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v uint32 = iter.Uint32Value()
+		assert.Equal(t, v1, v)
+		v = iter.NextUint32Value()
+		assert.Equal(t, v2, v)
+	}
+
+	{
+		var (
+			v1   = uint64(1)
+			v2   = uint64(2)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v uint64 = iter.Uint64Value()
+		assert.Equal(t, v1, v)
+		v = iter.NextUint64Value()
+		assert.Equal(t, v2, v)
+	}
+}
+
+func TestFloatValue(t *testing.T) {
+	{
+		var (
+			v1   = float32(1.25)
+			v2   = float32(2.5)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v float32 = iter.Float32Value()
+		assert.Equal(t, v1, v)
+		v = iter.NextFloat32Value()
+		assert.Equal(t, v2, v)
+	}
+
+	{
+		var (
+			v1   = float64(1.25)
+			v2   = float64(2.5)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v float64 = iter.Float64Value()
+		assert.Equal(t, v1, v)
+		v = iter.NextFloat64Value()
+		assert.Equal(t, v2, v)
+	}
+}
+
+func TestComplexValue(t *testing.T) {
+	{
+		var (
+			v1   = complex64(1 + 2i)
+			v2   = complex64(3 + 4i)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v complex64 = iter.Complex64Value()
+		assert.Equal(t, v1, v)
+		v = iter.NextComplex64Value()
+		assert.Equal(t, v2, v)
+	}
+
+	{
+		var (
+			v1   = complex128(1 + 2i)
+			v2   = complex128(3 + 4i)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v complex128 = iter.Complex128Value()
+		assert.Equal(t, v1, v)
+		v = iter.NextComplex128Value()
+		assert.Equal(t, v2, v)
+	}
+}
+
+func TestStringValue(t *testing.T) {
+	var (
+		v1   = "1"
+		v2   = "2"
+		iter = Of(v1, v2)
+	)
+
+	next := iter.Next()
+	assert.True(t, next)
+	var v string = iter.StringValue()
+	assert.Equal(t, v1, v)
+	v = iter.NextStringValue()
+	assert.Equal(t, v2, v)
 }
 
 func TestIterIsIterable(t *testing.T) {
@@ -1215,5 +1320,55 @@ func TestToSliceOf(t *testing.T) {
 
 		iter.Next()
 		assert.Fail(t, "Must panic")
+	}()
+}
+
+func TestForLoop(t *testing.T) {
+	func() {
+		var (
+			iter     = Of(5, []int{6, 7})
+			idx      = 0
+			expected = []interface{}{5, []int{6, 7}}
+		)
+
+		for iter.Next() {
+			assert.Equal(t, expected[idx], iter.Value())
+			idx++
+		}
+
+		assert.Equal(t, 2, idx)
+
+		func() {
+			defer func() {
+				assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			}()
+
+			iter.Next()
+			assert.Fail(t, "Must panic")
+		}()
+	}()
+
+	func() {
+		var (
+			iter     *Iter
+			idx      = 0
+			expected = []int{5}
+		)
+
+		for iter = OfElements(5); iter.Next(); {
+			assert.Equal(t, expected[idx], iter.Value())
+			idx++
+		}
+
+		assert.Equal(t, 1, idx)
+
+		func() {
+			defer func() {
+				assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			}()
+
+			iter.Next()
+			assert.Fail(t, "Must panic")
+		}()
 	}()
 }

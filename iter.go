@@ -261,11 +261,32 @@ func (it *Iter) Value() interface{} {
 	return it.value
 }
 
+// ValueOfType reads the value and converts it to a value with the same type as the given value.
+// EG, if an int is passed, it converts the value to an int.
+// The result will have to be type asserted.
+// Panics is value is nil.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to the type of the given value.
+func (it *Iter) ValueOfType(value interface{}) interface{} {
+	if value == nil {
+		panic("value cannot be nil")
+	}
+
+	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(value)).Interface()
+}
+
 // NextValue retrieves the next value for cases where you know the iterator has another value.
 // Panics if Next() or Value() panics.
 func (it *Iter) NextValue() interface{} {
 	it.Next()
 	return it.Value()
+}
+
+// NextValueOfType retrieves the next value with the same type as the given value for cases where you know the iterator has another value.
+// Panics if Next() or ValueOfType() panics.
+func (it *Iter) NextValueOfType(value interface{}) interface{} {
+	it.Next()
+	return it.ValueOfType(value)
 }
 
 // BoolValue reads the value and converts it to a bool.
@@ -282,60 +303,200 @@ func (it *Iter) NextBoolValue() bool {
 	return it.BoolValue()
 }
 
-// ComplexValue reads the value and converts it to a complex128.
+// IntValue reads the value and converts it to an int.
 // Panics if Value() method panics.
-// Panics if the value is not convertible to an complex128.
-func (it *Iter) ComplexValue() complex128 {
-	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(complex128(0))).Complex()
+// Panics if the value is not convertible to an int.
+func (it *Iter) IntValue() int {
+	return int(reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(0)).Int())
 }
 
-// NextComplexValue retrieves the next value as a complex128 for cases where you know the iterator has another value.
-// Panics if Next() or ComplexValue() panics.
-func (it *Iter) NextComplexValue() complex128 {
-	it.Next()
-	return it.ComplexValue()
-}
-
-// FloatValue reads the value and converts it to a float64.
-// Panics if Value() method panics.
-// Panics if the value is not convertible to a float64.
-func (it *Iter) FloatValue() float64 {
-	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(float64(0))).Float()
-}
-
-// NextFloatValue retrieves the next value as a float for cases where you know the iterator has another value.
-// Panics if Next() or FloatValue() panics.
-func (it *Iter) NextFloatValue() float64 {
-	it.Next()
-	return it.FloatValue()
-}
-
-// IntValue reads the value and converts it to an int64.
-// Panics if Value() method panics.
-// Panics if the value is not convertible to an int64.
-func (it *Iter) IntValue() int64 {
-	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(int64(0))).Int()
-}
-
-// NextIntValue retrieves the next value as an int64 for cases where you know the iterator has another value.
+// NextIntValue retrieves the next value as an int for cases where you know the iterator has another value.
 // Panics if Next() or IntValue() panics.
-func (it *Iter) NextIntValue() int64 {
+func (it *Iter) NextIntValue() int {
 	it.Next()
 	return it.IntValue()
 }
 
-// UintValue reads the value and converts it to a uint64.
+// Int8Value reads the value and converts it to an int8.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to an int8.
+func (it *Iter) Int8Value() int8 {
+	return int8(reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(int8(0))).Int())
+}
+
+// NextInt8Value retrieves the next value as an int8 for cases where you know the iterator has another value.
+// Panics if Next() or Int8Value() panics.
+func (it *Iter) NextInt8Value() int8 {
+	it.Next()
+	return it.Int8Value()
+}
+
+// Int16Value reads the value and converts it to an int16.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to an int16.
+func (it *Iter) Int16Value() int16 {
+	return int16(reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(int16(0))).Int())
+}
+
+// NextInt16Value retrieves the next value as an int16 for cases where you know the iterator has another value.
+// Panics if Next() or Int16Value() panics.
+func (it *Iter) NextInt16Value() int16 {
+	it.Next()
+	return it.Int16Value()
+}
+
+// Int32Value reads the value and converts it to an int32.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to an int32.
+func (it *Iter) Int32Value() int32 {
+	return int32(reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(int32(0))).Int())
+}
+
+// NextInt32Value retrieves the next value as an int32 for cases where you know the iterator has another value.
+// Panics if Next() or Int32Value() panics.
+func (it *Iter) NextInt32Value() int32 {
+	it.Next()
+	return it.Int32Value()
+}
+
+// Int64Value reads the value and converts it to an int64.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to an int64.
+func (it *Iter) Int64Value() int64 {
+	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(int64(0))).Int()
+}
+
+// NextInt64Value retrieves the next value as an int64 for cases where you know the iterator has another value.
+// Panics if Next() or Int64Value() panics.
+func (it *Iter) NextInt64Value() int64 {
+	it.Next()
+	return it.Int64Value()
+}
+
+// UintValue reads the value and converts it to a uint.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a uint.
+func (it *Iter) UintValue() uint {
+	return uint(reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(uint(0))).Uint())
+}
+
+// NextUintValue retrieves the next value as a uint for cases where you know the iterator has another value.
+// Panics if Next() or UintValue() panics.
+func (it *Iter) NextUintValue() uint {
+	it.Next()
+	return it.UintValue()
+}
+
+// Uint8Value reads the value and converts it to a uint8.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a uint8.
+func (it *Iter) Uint8Value() uint8 {
+	return uint8(reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(uint8(0))).Uint())
+}
+
+// NextUint8Value retrieves the next value as a uint8 for cases where you know the iterator has another value.
+// Panics if Next() or Uint8Value() panics.
+func (it *Iter) NextUint8Value() uint8 {
+	it.Next()
+	return it.Uint8Value()
+}
+
+// Uint16Value reads the value and converts it to a uint16.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a uint16.
+func (it *Iter) Uint16Value() uint16 {
+	return uint16(reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(uint16(0))).Uint())
+}
+
+// NextUint16Value retrieves the next value as a uint16 for cases where you know the iterator has another value.
+// Panics if Next() or Uint16Value() panics.
+func (it *Iter) NextUint16Value() uint16 {
+	it.Next()
+	return it.Uint16Value()
+}
+
+// Uint32Value reads the value and converts it to a uint32.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a uint32.
+func (it *Iter) Uint32Value() uint32 {
+	return uint32(reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(uint32(0))).Uint())
+}
+
+// NextUint32Value retrieves the next value as a uint32 for cases where you know the iterator has another value.
+// Panics if Next() or Uint32Value() panics.
+func (it *Iter) NextUint32Value() uint32 {
+	it.Next()
+	return it.Uint32Value()
+}
+
+// Uint64Value reads the value and converts it to a uint64.
 // Panics if Value() method panics.
 // Panics if the value is not convertible to a uint64.
-func (it *Iter) UintValue() uint64 {
+func (it *Iter) Uint64Value() uint64 {
 	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(uint64(0))).Uint()
 }
 
-// NextUintValue retrieves the next value as a uint64 for cases where you know the iterator has another value.
-// Panics if Next() or UintValue() panics.
-func (it *Iter) NextUintValue() uint64 {
+// NextUint64Value retrieves the next value as a uint64 for cases where you know the iterator has another value.
+// Panics if Next() or Uint64Value() panics.
+func (it *Iter) NextUint64Value() uint64 {
 	it.Next()
-	return it.UintValue()
+	return it.Uint64Value()
+}
+
+// Float32Value reads the value and converts it to a float32.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a float32.
+func (it *Iter) Float32Value() float32 {
+	return float32(reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(float32(0))).Float())
+}
+
+// NextFloat32Value retrieves the next value as a float32 for cases where you know the iterator has another value.
+// Panics if Next() or Float32Value() panics.
+func (it *Iter) NextFloat32Value() float32 {
+	it.Next()
+	return it.Float32Value()
+}
+
+// Float64Value reads the value and converts it to a float64.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a float64.
+func (it *Iter) Float64Value() float64 {
+	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(float64(0))).Float()
+}
+
+// NextFloat64Value retrieves the next value as a float64 for cases where you know the iterator has another value.
+// Panics if Next() or Float64Value() panics.
+func (it *Iter) NextFloat64Value() float64 {
+	it.Next()
+	return it.Float64Value()
+}
+
+// Complex64Value reads the value and converts it to a complex64.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a complex64.
+func (it *Iter) Complex64Value() complex64 {
+	return complex64(reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(complex64(0))).Complex())
+}
+
+// NextComplex64Value retrieves the next value as a complex64 for cases where you know the iterator has another value.
+// Panics if Next() or Complex64Value() panics.
+func (it *Iter) NextComplex64Value() complex64 {
+	it.Next()
+	return it.Complex64Value()
+}
+
+// Complex128Value reads the value and converts it to a complex128.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a complex128.
+func (it *Iter) Complex128Value() complex128 {
+	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(complex128(0))).Complex()
+}
+
+// NextComplex128Value retrieves the next value as a complex128 for cases where you know the iterator has another value.
+// Panics if Next() or Complex128Value() panics.
+func (it *Iter) NextComplex128Value() complex128 {
+	it.Next()
+	return it.Complex128Value()
 }
 
 // StringValue reads the value and converts it to a string.
@@ -350,27 +511,6 @@ func (it *Iter) StringValue() string {
 func (it *Iter) NextStringValue() string {
 	it.Next()
 	return it.StringValue()
-}
-
-// ValueOfType reads the value and converts it to a value with the same type as the given value.
-// EG, if an int is passed, it converts the value to an int.
-// The result will have to be type asserted.
-// Panics is value is nil.
-// Panics if Value() method panics.
-// Panics if the value is not convertible to the type of the given value.
-func (it *Iter) ValueOfType(value interface{}) interface{} {
-	if value == nil {
-		panic("value cannot be nil")
-	}
-
-	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(value)).Interface()
-}
-
-// NextValueOfType retrieves the next value with the same type as the given value for cases where you know the iterator has another value.
-// Panics if Next() or ValueOfType() panics.
-func (it *Iter) NextValueOfType(value interface{}) interface{} {
-	it.Next()
-	return it.ValueOfType(value)
 }
 
 // Iter is the Iterable interface.
