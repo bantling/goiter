@@ -522,6 +522,9 @@ func (it *Iter) Iter() *Iter {
 }
 
 // SplitIntoRows splits the iterator into rows of at most the number of columns specified.
+// Since the number of items to iterate is not known, the algorithm fills across the first row from left to right,
+// then fills across the second row, and so on.
+// If the number of items <= the number of columns, a single row is returned.
 // This operation will exhaust the iter.
 // Panics if the iter has already been exhausted.
 // Panics if cols = 0.
@@ -601,6 +604,9 @@ func (it *Iter) SplitIntoRowsOf(cols uint, value interface{}) interface{} {
 }
 
 // SplitIntoColumns splits the iterator into columns with at most the number of rows specified.
+// Since the number of items to iterate is not known, the algorithm fills down the first column from top to bottom,
+// then fills down the second column, and so on.
+// If the number of items <= the number of rows, then a single column is returned with one row per item.
 // This method is simply the transpose operation of SplitIntoRows.
 // This operation will exhaust the iter.
 // Panics if the iter has already been exhausted.
