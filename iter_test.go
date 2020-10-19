@@ -1130,15 +1130,15 @@ func TestSplitIntoColumns(t *testing.T) {
 
 	iter = Of(1, 2, 3, 4, 5, 6)
 	split = iter.SplitIntoColumns(5)
-	assert.Equal(t, [][]interface{}{{1, 6}, {2}, {3}, {4}, {5}}, split)
+	assert.Equal(t, [][]interface{}{{1, 2}, {3}, {4}, {5}, {6}}, split)
 
 	iter = Of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	split = iter.SplitIntoColumns(5)
-	assert.Equal(t, [][]interface{}{{1, 6}, {2, 7}, {3, 8}, {4, 9}, {5, 10}}, split)
+	assert.Equal(t, [][]interface{}{{1, 2}, {3, 4}, {5, 6}, {7, 8}, {9, 10}}, split)
 
 	iter = Of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
 	split = iter.SplitIntoColumns(5)
-	assert.Equal(t, [][]interface{}{{1, 6, 11}, {2, 7}, {3, 8}, {4, 9}, {5, 10}}, split)
+	assert.Equal(t, [][]interface{}{{1, 2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}}, split)
 
 	// Split with n = 1 columns per subslice corner case
 	iter = Of()
@@ -1222,15 +1222,15 @@ func TestSplitIntoColumnsOf(t *testing.T) {
 
 	iter = Of(1, 2, 3, 4, 5, 6)
 	split = iter.SplitIntoColumnsOf(5, 0)
-	assert.Equal(t, [][]int{{1, 6}, {2}, {3}, {4}, {5}}, split)
+	assert.Equal(t, [][]int{{1, 2}, {3}, {4}, {5}, {6}}, split)
 
 	iter = Of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 	split = iter.SplitIntoColumnsOf(5, 0)
-	assert.Equal(t, [][]int{{1, 6}, {2, 7}, {3, 8}, {4, 9}, {5, 10}}, split)
+	assert.Equal(t, [][]int{{1, 2}, {3, 4}, {5, 6}, {7, 8}, {9, 10}}, split)
 
 	iter = Of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
 	split = iter.SplitIntoColumnsOf(5, 0)
-	assert.Equal(t, [][]int{{1, 6, 11}, {2, 7}, {3, 8}, {4, 9}, {5, 10}}, split)
+	assert.Equal(t, [][]int{{1, 2, 3}, {4, 5}, {6, 7}, {8, 9}, {10, 11}}, split)
 
 	// Split into a type that requires conversion
 	iter = Of(uint(1), uint(2))

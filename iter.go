@@ -524,6 +524,7 @@ func (it *Iter) Iter() *Iter {
 // SplitIntoRows splits the iterator into rows of at most the number of columns specified.
 // Since the number of items to iterate is not known, the algorithm fills across the first row from left to right,
 // then fills across the second row, and so on.
+// The original ordering is retained by iterating each row from left to right.
 // If the number of items <= the number of columns, a single row is returned.
 // This operation will exhaust the iter.
 // Panics if the iter has already been exhausted.
@@ -604,9 +605,9 @@ func (it *Iter) SplitIntoRowsOf(cols uint, value interface{}) interface{} {
 }
 
 // SplitIntoColumns splits the iterator into columns with at most the number of rows specified.
-// Since the number of items to iterate is not known, the algorithm fills down the first column from top to bottom,
-// then fills down the second column, and so on.
-// If the number of items <= the number of rows, then a single column is returned with one row per item.
+// The algorithm reads all the items into a slice first to determine the number of them and ensures that each row has the same number of columns, except for a remainder spread across one or more rows.
+// EG, if 23 items exist and rows = 5, 23 / 5 = 4 r 3, so the first 3 rows have 5 items (4 + 1 from remainder), the last 2 have 4: 3 * 5 + 2 * 4 = 15 + 8 = 23.
+// If the number of items <= the number of rows, then the number of rows = number of items, 1 item per row.
 // This method is simply the transpose operation of SplitIntoRows.
 // This operation will exhaust the iter.
 // Panics if the iter has already been exhausted.
@@ -616,28 +617,36 @@ func (it *Iter) SplitIntoColumns(rows uint) [][]interface{} {
 		panic("rows must be > 0")
 	}
 
+	// Collect values into a slice first
 	var (
-		split = [][]interface{}{}
-		idx   uint
+		values         = it.ToSlice()
+		numValues      = len(values)
+		numRows        = int(rows)
+		numItems, rmdr = numValues / numRows, numValues % numRows
+		start, end     int
+		split          = [][]interface{}{}
 	)
 
-	// Start by creating up to the specified number of rows with one element each
-	for idx = 0; idx < rows; idx++ {
-		if !it.Next() {
-			// Less elements than specified number of rows, return the one element rows we have
-			return split
-		}
+	if numValues < numRows {
+		// Fewer items than requested number of rows, actual number of rows = number of items
+		numRows = numValues
 
-		split = append(split, []interface{}{it.Value()})
+		// Each row has 1 item, no remainder
+		numItems, rmdr = 1, 0
 	}
 
-	// Populate columns top to bottom with remaining elements
-	for idx = 0; it.Next(); {
-		split[idx] = append(split[idx], it.Value())
-
-		if idx++; idx == rows {
-			idx = 0
+	for i := 0; i < numRows; i++ {
+		// start, end = indexes for a subslice of values for this row
+		end = start + numItems
+		if rmdr > 0 {
+			// Add one extra item from remainder
+			end++
+			rmdr--
 		}
+		split = append(split, values[start:end])
+
+		// next row start index is current row end index (start is inclusive, end is exclusive)
+		start = end
 	}
 
 	return split
@@ -648,6 +657,7 @@ func (it *Iter) SplitIntoColumns(rows uint) [][]interface{} {
 // Panics if the iter has already been exhausted.
 // Panics if rows = 0.
 // Panics if value is nil.
+// Panics if any value is not convertible to the type of the given value.
 func (it *Iter) SplitIntoColumnsOf(rows uint, value interface{}) interface{} {
 	if rows == 0 {
 		panic("rows must be > 0")
@@ -657,38 +667,44 @@ func (it *Iter) SplitIntoColumnsOf(rows uint, value interface{}) interface{} {
 		panic("value cannot be nil")
 	}
 
+	// Collect values into a slice first
 	var (
-		intRows = int(rows)
-		typ     = reflect.TypeOf(value)
-		split   = reflect.MakeSlice(reflect.SliceOf(reflect.SliceOf(typ)), 0, 0)
-		idx     int
+		values         = it.ToSlice()
+		numValues      = len(values)
+		numRows        = int(rows)
+		numItems, rmdr = numValues / numRows, numValues % numRows
+		start, end     int
+		typ            = reflect.TypeOf(value)
 	)
 
-	// Start by creating up to the specified number of rows with one element each
-	for idx = 0; idx < intRows; idx++ {
-		if !it.Next() {
-			// Less elements than specified number of rows, return the one element rows we have
-			return split.Interface()
-		}
+	if numValues < numRows {
+		// Fewer items than requested number of rows, actual number of rows = number of items
+		numRows = numValues
 
-		split = reflect.Append(
-			split,
-			reflect.Append(
-				reflect.MakeSlice(reflect.SliceOf(typ), 0, 0),
-				reflect.ValueOf(it.Value()).Convert(typ),
-			),
-		)
+		// Each row has 1 item, no remainder
+		numItems, rmdr = 1, 0
 	}
 
-	// Populate columns top to bottom with remaining elements
-	for idx = 0; it.Next(); {
-		split.Index(idx).Set(
-			reflect.Append(split.Index(idx), reflect.ValueOf(it.Value()).Convert(typ)),
-		)
+	// Allocate number of rows now we know for sure how many there are
+	split := reflect.MakeSlice(reflect.SliceOf(reflect.SliceOf(typ)), numRows, numRows)
 
-		if idx++; idx == intRows {
-			idx = 0
+	for i := 0; i < numRows; i++ {
+		// start, end = indexes for a subslice of values for this row
+		end = start + numItems
+		if rmdr > 0 {
+			// Add one extra item from remainder
+			end++
+			rmdr--
 		}
+
+		row := reflect.MakeSlice(reflect.SliceOf(typ), end-start, end-start)
+		for j, colIdx := start, 0; j < end; j, colIdx = j+1, colIdx+1 {
+			row.Index(colIdx).Set(reflect.ValueOf(values[j]).Convert(typ))
+		}
+		split.Index(i).Set(row)
+
+		// next row start index is current row end index (start is inclusive, end is exclusive)
+		start = end
 	}
 
 	return split.Interface()
