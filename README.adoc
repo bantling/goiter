@@ -8,7 +8,7 @@ a function that accepts no arguments and returns (next item, true if next item e
 When the bool result is false, the next item result is invalid in the sense it must be ignored for correct iteration.
 These functions may be designed so that once exhausted, they continue to return (invalid value, false).
 
-== Provided iterating functions
+== Iterating functions
 
 * ArraySliceIterFunc: iterates any type of array or slice non-recursively. Panics if value passed does not wrap an array or slice.
 * IterablesFunc: iterates any number of Iterable
@@ -16,7 +16,11 @@ These functions may be designed so that once exhausted, they continue to return 
 * NoValueIterFunc: iterates nothing, always returns (nil, false)
 * SingleValueIterFunc: iterates a single value, where first call to next returns (value, true), further calls return (nil, false). Array/slice/map values are just returned as one value.
 * ElementsIterFunc: iterates the elements of a value, using each of the above funcs as appropriate.
-* DelayedIterFunc: accepts generator of no args that returns an iterating function, and delays generating the iterating function until the first iteration. 
+* DelayedIterFunc: accepts generator of no args that returns an iterating function, and delays generating the iterating function until the first iteration.
+
+== Helper functions
+
+FlattenArraySlice flattens a multi-dimensional array or slice into a one dimenional []interface{}  
 
 == Iter struct
 
@@ -55,6 +59,7 @@ The Iter struct uses an iterating function to implement the iterator pattern in 
 
 * NewIter accepts an iterating function
 * Of accepts a single item which is iterated using an ArraySliceIterFunc
+* OfFlatten accepts an array or slice which is flattened into one dimension via FlattenArraySlice and iterated using an ArraySliceIterFunc
 * OfElements accepts a single item which is iterated using an ElementsIterFunc
 * OfIterables accepts a vararg of Iterable which is iterated using an IterablesFunc
 
@@ -87,6 +92,20 @@ while OfIterables iterates any number of them.
         iter.Next()
         assert.Fail(t, "Must panic")
     }()
+....
+
+=== OfFlatten constructor
+....
+    iter := OfFlatten([]interface{}{1, [2]int{2, 3}, [][]string{{"4", "5"}, {"6", "7", "8"}}})
+    assert.Equal(t, 1, iter.NextValue())
+    assert.Equal(t, 2, iter.NextValue())
+    assert.Equal(t, 3, iter.NextValue())
+    assert.Equal(t, "4", iter.NextValue())
+    assert.Equal(t, "5", iter.NextValue())
+    assert.Equal(t, "6", iter.NextValue())
+    assert.Equal(t, "7", iter.NextValue())
+    assert.Equal(t, "8", iter.NextValue())
+    assert.False(t, iter.Next())
 ....
 
 === OfElements constructor

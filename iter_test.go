@@ -423,6 +423,23 @@ func TestDelayedIterFunc(t *testing.T) {
 	assert.False(t, next)
 }
 
+func TestFlattenArraySlice(t *testing.T) {
+	f := FlattenArraySlice([2]int{1, 2})
+	assert.Equal(t, []interface{}{1, 2}, f)
+
+	f = FlattenArraySlice([]int{1, 3, 4})
+	assert.Equal(t, []interface{}{1, 3, 4}, f)
+
+	f = FlattenArraySlice([]int{1, 3, 4})
+	assert.Equal(t, []interface{}{1, 3, 4}, f)
+
+	f = FlattenArraySlice([][]int{{1, 2}, {3, 4, 5}})
+	assert.Equal(t, []interface{}{1, 2, 3, 4, 5}, f)
+
+	f = FlattenArraySlice([]interface{}{1, [2]int{2, 3}, [][]string{{"4", "5"}, {"6", "7", "8"}}})
+	assert.Equal(t, []interface{}{1, 2, 3, "4", "5", "6", "7", "8"}, f)
+}
+
 func TestOf(t *testing.T) {
 	// Empty items
 	iter := Of()
@@ -480,6 +497,19 @@ func TestOf(t *testing.T) {
 		iter.Next()
 		assert.Fail(t, "Must panic")
 	}()
+}
+
+func TestOfFlatten(t *testing.T) {
+	iter := OfFlatten([]interface{}{1, [2]int{2, 3}, [][]string{{"4", "5"}, {"6", "7", "8"}}})
+	assert.Equal(t, 1, iter.NextValue())
+	assert.Equal(t, 2, iter.NextValue())
+	assert.Equal(t, 3, iter.NextValue())
+	assert.Equal(t, "4", iter.NextValue())
+	assert.Equal(t, "5", iter.NextValue())
+	assert.Equal(t, "6", iter.NextValue())
+	assert.Equal(t, "7", iter.NextValue())
+	assert.Equal(t, "8", iter.NextValue())
+	assert.False(t, iter.Next())
 }
 
 func TestOfElements(t *testing.T) {

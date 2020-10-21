@@ -7,7 +7,9 @@ import (
 
 // ==== Iterator function generators
 
-// ArraySliceIterFunc iterates an array or slice
+// ArraySliceIterFunc iterates an array or slice outermost dimension.
+// EG, if an [][]int is passed, the iterator returns []int values.
+// Panics if the value is not an array or slice.
 func ArraySliceIterFunc(arraySlice reflect.Value) func() (interface{}, bool) {
 	if (arraySlice.Kind() != reflect.Array) && (arraySlice.Kind() != reflect.Slice) {
 		panic("ArraySliceIterFunc argument must be an array or slice")
@@ -15,7 +17,7 @@ func ArraySliceIterFunc(arraySlice reflect.Value) func() (interface{}, bool) {
 
 	var (
 		num = arraySlice.Len()
-		idx = 0
+		idx int
 	)
 
 	return func() (interface{}, bool) {
@@ -132,9 +134,9 @@ func SingleValueIterFunc(aVal reflect.Value) func() (interface{}, bool) {
 	}
 }
 
-// ElementsIterFunc returns an iterator function that iterates the elements of the item passed.
+// ElementsIterFunc returns an iterator function that iterates the elements of the item passed non-recursively.
 // The item is handled as follows:
-// - Array or Slice: returns ArraySliceIterFunc(item)
+// - Array or Slice: returns ArraySliceOuterIterFunc(item)
 // - Iterable: returns IterFunc(item)
 // - Map: returns MapIterFunc(item)
 // - Nil ptr: returns NoValueIterFunc
@@ -178,6 +180,40 @@ func DelayedIterFunc(generator func() func() (interface{}, bool)) func() (interf
 	}
 }
 
+// FlattenArraySlice flattens an array or slice of any number of dimensions into a new slice of one dimension.
+// EG, an [][]int{{1, 2}, {3, 4, 5}} is flattened into an []interface{}{1,2,3,4,5}.
+// Note that in case where the element type is interface{}, a mixture of values and arrays/slices could be used.
+// EG, an []interface{}{1, [2]int{2, 3}, [][]string{{"4", "5"}, {"6", "7", "8"}}} is flattened into []interface{}{1, 2, 3, "4", "5", "6", "7", "8"}.
+// Panics if the value is not an array or slice.
+func FlattenArraySlice(value interface{}) []interface{} {
+	arraySlice := reflect.ValueOf(value)
+	if (arraySlice.Kind() != reflect.Array) && (arraySlice.Kind() != reflect.Slice) {
+		panic("FlattenArraySlice argument must be an array or slice")
+	}
+
+	// Make a one dimensional slice
+	result := []interface{}{}
+
+	// Recursive function
+	var f func(reflect.Value)
+	f = func(currentArraySlice reflect.Value) {
+		// Iterate current array or slice
+		for i, num := 0, currentArraySlice.Len(); i < num; i++ {
+			val := reflect.ValueOf(currentArraySlice.Index(i).Interface())
+
+			// Recurse sub-arrays/slices
+			if (val.Kind() == reflect.Array) || (val.Kind() == reflect.Slice) {
+				f(val)
+			} else {
+				result = append(result, val.Interface())
+			}
+		}
+	}
+	f(arraySlice)
+
+	return result
+}
+
 // ==== Iter
 
 // Iter is an iterator of values of an arbitrary type.
@@ -204,6 +240,12 @@ func NewIter(iter func() (interface{}, bool)) *Iter {
 // If any item is an array/slice/map/Iterable, it will be handled the same as any other type - the whole array/slice/map/Iterable will iterated as a single value.
 func Of(items ...interface{}) *Iter {
 	return NewIter(ArraySliceIterFunc(reflect.ValueOf(items)))
+}
+
+// OfFlatten constructs an Iter that flattens a multi-dimensional array or slice into a new one-dimensional slice.
+// See FlattenArraySlice.
+func OfFlatten(items interface{}) *Iter {
+	return NewIter(ArraySliceIterFunc(reflect.ValueOf(FlattenArraySlice(items))))
 }
 
 // OfElements constructs an Iter that iterates the elements of the item passed.
