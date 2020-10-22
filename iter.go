@@ -214,6 +214,44 @@ func FlattenArraySlice(value interface{}) []interface{} {
 	return result
 }
 
+// FlattenArraySliceAsType flattens an array or slice of any number of dimensions into a new slice of one dimension,
+// where the slice type is the same as the given element.
+// EG, an [][]int{{1, 2}, {3, 4, 5}} can be flattened into an []int{}{1,2,3,4,5}.
+// Note that in case where the element type is interface{}, a mixture of values and arrays/slices could be used.
+// EG, an []interface{}{1, [2]int{2, 3}, [][]uint{{4, 5}, {6, 7, 8}}} can be flattened into []int{}{1, 2, 3, 4, 5, 6, 7, 8}.
+// Panics if the value is not an array or slice.
+func FlattenArraySliceAsType(value interface{}, elementVal interface{}) interface{} {
+	arraySlice := reflect.ValueOf(value)
+	if (arraySlice.Kind() != reflect.Array) && (arraySlice.Kind() != reflect.Slice) {
+		panic("FlattenArraySliceAs value must be an array or slice")
+	}
+
+	// Make a one dimensional slice that has the same type as the type of elementVal
+	var (
+		typ    = reflect.TypeOf(elementVal)
+		result = reflect.MakeSlice(reflect.SliceOf(typ), 0, 0)
+	)
+
+	// Recursive function
+	var f func(reflect.Value)
+	f = func(currentArraySlice reflect.Value) {
+		// Iterate current array or slice
+		for i, num := 0, currentArraySlice.Len(); i < num; i++ {
+			val := reflect.ValueOf(currentArraySlice.Index(i).Interface())
+
+			// Recurse sub-arrays/slices
+			if (val.Kind() == reflect.Array) || (val.Kind() == reflect.Slice) {
+				f(val)
+			} else {
+				result = reflect.Append(result, val.Convert(typ))
+			}
+		}
+	}
+	f(arraySlice)
+
+	return result.Interface()
+}
+
 // ==== Iter
 
 // Iter is an iterator of values of an arbitrary type.

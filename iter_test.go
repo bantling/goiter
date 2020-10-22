@@ -430,14 +430,25 @@ func TestFlattenArraySlice(t *testing.T) {
 	f = FlattenArraySlice([]int{1, 3, 4})
 	assert.Equal(t, []interface{}{1, 3, 4}, f)
 
-	f = FlattenArraySlice([]int{1, 3, 4})
-	assert.Equal(t, []interface{}{1, 3, 4}, f)
-
 	f = FlattenArraySlice([][]int{{1, 2}, {3, 4, 5}})
 	assert.Equal(t, []interface{}{1, 2, 3, 4, 5}, f)
 
 	f = FlattenArraySlice([]interface{}{1, [2]int{2, 3}, [][]string{{"4", "5"}, {"6", "7", "8"}}})
 	assert.Equal(t, []interface{}{1, 2, 3, "4", "5", "6", "7", "8"}, f)
+}
+
+func TestFlattenArraySliceAsType(t *testing.T) {
+	f := FlattenArraySliceAsType([2]int{1, 2}, 0)
+	assert.Equal(t, []int{1, 2}, f)
+
+	f = FlattenArraySliceAsType([]int{1, 3, 4}, 0)
+	assert.Equal(t, []int{1, 3, 4}, f)
+
+	f = FlattenArraySliceAsType([][]int{{1, 2}, {3, 4, 5}}, 0)
+	assert.Equal(t, []int{1, 2, 3, 4, 5}, f)
+
+	f = FlattenArraySliceAsType([]interface{}{1, [2]int{2, 3}, [][]uint{{4, 5}, {6, 7, 8}}}, 0)
+	assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7, 8}, f)
 }
 
 func TestOf(t *testing.T) {

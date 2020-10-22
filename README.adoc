@@ -20,7 +20,8 @@ These functions may be designed so that once exhausted, they continue to return 
 
 == Helper functions
 
-FlattenArraySlice flattens a multi-dimensional array or slice into a one dimenional []interface{}  
+* FlattenArraySlice flattens a multi-dimensional array or slice into a one dimenional []interface{}
+* FlattenArraySliceAsType is the same as FlattenArraySlice, except it converts to the same type as the type of the value provided 
 
 == Iter struct
 
