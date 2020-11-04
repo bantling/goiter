@@ -16,7 +16,6 @@ These functions may be designed so that once exhausted, they continue to return 
 * NoValueIterFunc: iterates nothing, always returns (nil, false)
 * SingleValueIterFunc: iterates a single value, where first call to next returns (value, true), further calls return (nil, false). Array/slice/map values are just returned as one value.
 * ElementsIterFunc: iterates the elements of a value, using each of the above funcs as appropriate.
-* DelayedIterFunc: accepts generator of no args that returns an iterating function, and delays generating the iterating function until the first iteration.
 
 == Helper functions
 

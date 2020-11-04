@@ -406,23 +406,6 @@ func TestElementsIterFunc(t *testing.T) {
 	assert.False(t, next)
 }
 
-func TestDelayedIterFunc(t *testing.T) {
-	iterFunc := DelayedIterFunc(func() func() (interface{}, bool) {
-		return SingleValueIterFunc(reflect.ValueOf(1))
-	},
-	)
-
-	val, next := iterFunc()
-	assert.Equal(t, 1, val)
-	assert.True(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-}
-
 func TestFlattenArraySlice(t *testing.T) {
 	f := FlattenArraySlice([2]int{1, 2})
 	assert.Equal(t, []interface{}{1, 2}, f)

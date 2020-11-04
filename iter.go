@@ -162,24 +162,6 @@ func ElementsIterFunc(item reflect.Value) func() (interface{}, bool) {
 	}
 }
 
-// DelayedIterFunc returns a delayed interator function generator.
-// The first call of the resulting iterating function does the following:
-// 1. Executes the provided generator to get an iterating function
-// 2. Stores the iterating function
-// 3. Executes the iterating function to return the first result
-// Further calls of the resulting iterating function execute the saved iterating function and return the result
-func DelayedIterFunc(generator func() func() (interface{}, bool)) func() (interface{}, bool) {
-	var iterFunc func() (interface{}, bool)
-
-	return func() (interface{}, bool) {
-		if iterFunc == nil {
-			iterFunc = generator()
-		}
-
-		return iterFunc()
-	}
-}
-
 // FlattenArraySlice flattens an array or slice of any number of dimensions into a new slice of one dimension.
 // EG, an [][]int{{1, 2}, {3, 4, 5}} is flattened into an []interface{}{1,2,3,4,5}.
 // Note that in case where the element type is interface{}, a mixture of values and arrays/slices could be used.
