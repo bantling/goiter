@@ -749,6 +749,20 @@ func TestUintValue(t *testing.T) {
 	}
 	{
 		var (
+			v1   = byte(1)
+			v2   = byte(2)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v byte = iter.ByteValue()
+		assert.Equal(t, v1, v)
+		v = iter.NextByteValue()
+		assert.Equal(t, v2, v)
+	}
+	{
+		var (
 			v1   = uint8(1)
 			v2   = uint8(2)
 			iter = Of(v1, v2)

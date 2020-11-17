@@ -1,5 +1,5 @@
 reviveConfigFile = revive.toml
-reviceTestConfigFile = revive_test.toml
+reviveTestConfigFile = revive_test.toml
 
 .PHONY: all
 all: check-go check-path install-tools compile lint format test
@@ -33,10 +33,20 @@ lint:
 	go vet ./... || exit $$?; \
 	reviveConfigOpt=""; \
 	[ -f "$(reviveConfigFile)" ] && reviveConfigOpt="-config $(reviveConfigFile)"; \
-	revive $$reviveConfigOpt $$(go list -f '{{.GoFiles}}' | tr -d '[]') || exit $$?; \
+	reviveOut=`revive $$reviveConfigOpt $$(go list -f '{{.GoFiles}}' | tr -d '[]')`; \
+	echo "$$reviveOut"; \
+	case "$$reviveOut" in \
+	  ""|*"\n"*) ;; \
+	  *) exit 1;; \
+	esac; \
 	reviveTestConfigOpt="$$reviveConfigOpt"; \
-	[ -f "$(reviceTestConfigFile)" ] && reviveTestConfigOpt="-config $(reviceTestConfigFile)"; \
-	revive $$reviveTestConfigOpt $$(go list -f '{{.TestGoFiles}}' | tr -d '[]')
+	[ -f "$(reviveTestConfigFile)" ] && reviveTestConfigOpt="-config $(reviveTestConfigFile)"; \
+	reviveOut=`revive $$reviveTestConfigOpt $$(go list -f '{{.TestGoFiles}}' | tr -d '[]')`; \
+	echo "$$reviveOut"; \
+	case "$$reviveOut" in \
+	  ""|*"\n"*) ;; \
+	  *) exit 1;; \
+	esac
 
 .PHONY: format
 format:
@@ -46,6 +56,6 @@ format:
 test:
 	modOpt=""; \
 	[ -n "$(mod)" ] && modOpt="-mod=$(mod)"; \
-	testOpt=""; \
-	[ -n "$(run)" ] && testOpt="-run $(run)"; \
-	go test "$$modOpt" -v -count=1 $$testOpt ./...
+	testOpt="-count=$${count:-1}"; \
+	[ -n "$(run)" ] && testOpt="$$testOpt -run $(run)"; \
+	go test "$$modOpt" -v "$$testOpt" ./...

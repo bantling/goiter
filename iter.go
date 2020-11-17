@@ -365,6 +365,20 @@ func (it *Iter) NextBoolValue() bool {
 	return it.BoolValue()
 }
 
+// ByteValue reads the value and converts it to a byte.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a byte.
+func (it *Iter) ByteValue() byte {
+	return byte(reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(byte(0))).Uint())
+}
+
+// NextByteValue retrieves the next value as a byte for cases where you know the iterator has another value.
+// Panics if Next() or ByteValue() panics.
+func (it *Iter) NextByteValue() byte {
+	it.Next()
+	return it.ByteValue()
+}
+
 // IntValue reads the value and converts it to an int.
 // Panics if Value() method panics.
 // Panics if the value is not convertible to an int.
