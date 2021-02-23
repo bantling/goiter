@@ -1038,6 +1038,47 @@ func TestStringValue(t *testing.T) {
 	assert.Equal(t, v2, v)
 }
 
+func TestUnread(t *testing.T) {
+	iter := Of(1, 2, 3)
+	iter.Next()
+	iter.Unread(1)
+
+	for i := 1; i <= 3; i++ {
+		assert.Equal(t, i, iter.NextValue())
+	}
+
+	// Unread backwards just to prove it works
+	iter.Unread(1)
+	iter.Unread(2)
+	iter.Unread(3)
+
+	for i := 3; i >= 1; i-- {
+		// Test NextValue
+		assert.Equal(t, i, iter.NextValue())
+	}
+	assert.False(t, iter.Next())
+
+	// Test unreading before even reading
+	iter = Of(1)
+	iter.Unread(2)
+	for i := 2; i >= 1; i-- {
+		// Test Next/Value
+		iter.Next()
+		assert.Equal(t, i, iter.Value())
+	}
+	assert.False(t, iter.Next())
+
+	// Unreading doesn't affect panic on exhausted iter
+	func() {
+		defer func() {
+			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must die")
+	}()
+}
+
 func TestIterIsIterable(t *testing.T) {
 	var (
 		iter     = Of(0)

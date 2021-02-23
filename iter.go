@@ -363,6 +363,7 @@ type Iter struct {
 	iter       func() (interface{}, bool)
 	nextCalled bool
 	value      interface{}
+	buffer     []interface{}
 }
 
 // NewIter constructs an Iter from an iterating function.
@@ -425,10 +426,19 @@ func OfIterables(iterables ...Iterable) *Iter {
 
 // Next returns true if there is another item to be read by Value.
 // Once Next returns false, further calls to Next or Value panic.
+//
 func (it *Iter) Next() bool {
 	// Die if iterator already exhausted
 	if it.iter == nil {
 		panic("Iter.Next called on exhausted iterator")
+	}
+
+	// Check buffer first in case items have been unread
+	if l := len(it.buffer); l > 0 {
+		it.nextCalled = true
+		it.value = it.buffer[l-1]
+		it.buffer = it.buffer[:l-1]
+		return true
 	}
 
 	// Try to get next item
@@ -726,6 +736,26 @@ func (it *Iter) StringValue() string {
 func (it *Iter) NextStringValue() string {
 	it.Next()
 	return it.StringValue()
+}
+
+// Unread places the given value at the end of an internal buffer of unread values.
+// It is up to the caller to unread correctly.
+// Example:
+// - the source has values 1,2,3
+// - values 1,2 have been iterated, 3 has not
+// - caller can choose to unread 2, so that Next/Value returns 2 from buffer without consulting source
+// - calling Next again consults source to read 3
+// - caller can unread 3,2,1, so that Next/Value returns 1,2,3 without consulting source
+// - calling Next again returns false
+// There is nothing preventing the caller from reading 1,2,3 and unreading 1,2,3 causing Next/Value to return 3,2,1.
+// Panics if the iterator is exhausted.
+func (it *Iter) Unread(val interface{}) {
+	// Die if iterator already exhausted
+	if it.iter == nil {
+		panic("Iter.Unread called on exhausted iterator")
+	}
+
+	it.buffer = append(it.buffer, val)
 }
 
 // Iter is the Iterable interface.
