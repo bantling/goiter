@@ -4,7 +4,10 @@ package goiter
 
 import (
 	"reflect"
+	"regexp"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -285,6 +288,116 @@ func TestSingleValueIterFunc(t *testing.T) {
 
 	_, next = iterFunc()
 	assert.False(t, next)
+}
+
+func TestReaderIterFunc(t *testing.T) {
+	rdr := strings.NewReader("t2")
+	iterFunc := ReaderIterFunc(rdr)
+
+	val, next := iterFunc()
+	assert.Equal(t, byte('t'), val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, byte('2'), val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+}
+
+func TestReaderToRunesIterFunc(t *testing.T) {
+	inputs := []string{
+		"",
+		// 1 byte UTF8
+		"a",
+		"ab",
+		"abc",
+		"abcd",
+		"abcde",
+		"abcdef",
+		"abcdefg",
+		"abcdefgh",
+		"abcdefghi",
+		// 2 byte UTF8
+		"à",
+		"àà",
+		"ààa",
+		"ààaa",
+		// 3 byte UTF8
+		"ḁ",
+		"ḁḁ",
+		"ḁḁḁ",
+		"ḁḁḁḁ",
+		// 4 bytes UTF8
+		"𝆑",
+		"𝆑𝆑",
+		"𝆑𝆑𝆑",
+		"𝆑𝆑𝆑𝆑",
+	}
+
+	for _, input := range inputs {
+		var (
+			src      = strings.NewReader(input)
+			iterFunc = ReaderToRunesIterFunc(src)
+			val      interface{}
+			next     bool
+		)
+
+		for _, char := range []rune(input) {
+			val, next = iterFunc()
+			assert.Equal(t, char, val)
+			assert.True(t, next)
+		}
+
+		val, next = iterFunc()
+		assert.Equal(t, utf8.RuneError, val)
+		assert.False(t, next)
+
+		val, next = iterFunc()
+		assert.Equal(t, utf8.RuneError, val)
+		assert.False(t, next)
+	}
+}
+
+func TestReaderToLinesIterFunc(t *testing.T) {
+	var (
+		inputs = []string{
+			"",
+			"oneline",
+			"two\rline cr",
+			"two\nline lf",
+			"two\r\nline crlf",
+		}
+		linesRegex, _ = regexp.Compile("\r\n|\r|\n")
+	)
+
+	for _, input := range inputs {
+		var (
+			src      = strings.NewReader(input)
+			iterFunc = ReaderToLinesIterFunc(src)
+			lines    = linesRegex.Split(input, -1)
+			val      interface{}
+			next     bool
+		)
+
+		for _, line := range lines {
+			val, next = iterFunc()
+			assert.Equal(t, line, val)
+			assert.Equal(t, input != "", next)
+		}
+
+		val, next = iterFunc()
+		assert.Equal(t, "", val)
+		assert.False(t, next)
+
+		val, next = iterFunc()
+		assert.Equal(t, "", val)
+		assert.False(t, next)
+	}
 }
 
 func TestElementsIterFunc(t *testing.T) {
