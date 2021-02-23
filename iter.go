@@ -4,7 +4,19 @@ package goiter
 
 import (
 	"fmt"
+	"io"
 	"reflect"
+	"strings"
+	"unicode/utf8"
+)
+
+const (
+	// InvalidUTF8EncodingError indicates a sequence of byutes that is not a valid UTF8 encoding
+	InvalidUTF8EncodingError = "Invalid UTF 8 encoding"
+)
+
+var (
+	zeroUTF8Buffer = []byte{0, 0, 0, 0}
 )
 
 // ==== Iterator function generators
@@ -161,6 +173,113 @@ func ElementsIterFunc(item reflect.Value) func() (interface{}, bool) {
 		}
 
 		return SingleValueIterFunc(item)
+	}
+}
+
+// ReaderIterFunc iterates the bytes of an io.Reader.
+// For each byte in the Reader, returns (byte, true).
+// When eof read, returns (0, false).
+// When any other error occurs, panics with the error.
+func ReaderIterFunc(src io.Reader) func() (interface{}, bool) {
+	buf := make([]byte, 1)
+
+	return func() (interface{}, bool) {
+		if _, err := src.Read(buf); err != nil {
+			if err != io.EOF {
+				panic(err)
+			}
+
+			return 0, false
+		}
+
+		return buf[0], true
+	}
+}
+
+// ReaderToRunesIterFunc iterates the bytes of an io.Reader, and interprets them as UTF-8 runes.
+// For each valid rune contained in the Reader, returns (rune, true).
+// When EOF read, returns (utf8.RuneError, false).
+// When any other error occurs (including invalid UTF-8 encoding), panics with the error.
+func ReaderToRunesIterFunc(src io.Reader) func() (interface{}, bool) {
+	// UTF-8 requires at most 4 bytes for a code point
+	var (
+		buf    = make([]byte, 4)
+		bufPos int
+	)
+
+	return func() (interface{}, bool) {
+		// Read next up to 4 bytes from reader into subslice of buffer, after any remaining bytes from last read
+		if _, err := src.Read(buf[bufPos:]); (err != nil) && (err != io.EOF) {
+			panic(err)
+		}
+
+		// If first byte is 0 after reading, must have emptied source and returned all runes
+		if buf[0] == 0 {
+			return utf8.RuneError, false
+		}
+
+		// Decode up to 4 bytes for next code point
+		r, rl := utf8.DecodeRune(buf)
+		if r == utf8.RuneError {
+			panic(InvalidUTF8EncodingError)
+		}
+
+		// Shift any remaining unused bytes back to the begining of the buffer
+		copy(buf, buf[rl:])
+
+		// Next time read up to as many bytes as were shifted from source, overwriting remaining bytes
+		bufPos = 4 - rl
+
+		// Clear out the unused bytes at the end, in case we don't have enough bytes left to fill them
+		copy(buf[bufPos:], zeroUTF8Buffer)
+
+		return r, true
+	}
+}
+
+// ReaderToLinesIterFunc iterates the bytes of an io.Reader, and interprets them as runes.
+// Runes are read until an EOL sequence occurs (CR, LF, CRLF) or EOF occurs.
+// For each line contained in the Reader, returns (string, true), where the string does not contain an EOL sequence.
+// After the last line has been returned, all further calls return ("", false).
+// When any other error occurs (including invalid UTF-8 encoding), panics with the error.
+func ReaderToLinesIterFunc(src io.Reader) func() (interface{}, bool) {
+	// Use ReaderToRunesIterFunc to read individual runes until a line is read
+	var (
+		runesIter = ReaderToRunesIterFunc(src)
+		str       strings.Builder
+		lastCR    bool
+	)
+
+	return func() (interface{}, bool) {
+		str.Reset()
+
+		for {
+			codePoint, haveIt := runesIter()
+
+			if !haveIt {
+				if str.Len() > 0 {
+					return str.String(), true
+				}
+
+				return "", false
+			}
+
+			if codePoint == '\r' {
+				lastCR = true
+				return str.String(), true
+			}
+
+			if codePoint == '\n' {
+				if lastCR {
+					lastCR = false
+					continue
+				}
+
+				return str.String(), true
+			}
+
+			str.WriteRune(codePoint.(rune))
+		}
 	}
 }
 
