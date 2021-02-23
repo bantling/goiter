@@ -528,6 +528,20 @@ func (it *Iter) NextByteValue() byte {
 	return it.ByteValue()
 }
 
+// RuneValue reads the value and converts it to a rune.
+// Panics if Value() method panics.
+// Panics if the value is not convertible to a rune.
+func (it *Iter) RuneValue() rune {
+	return rune(reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(rune(0))).Int())
+}
+
+// NextRuneValue retrieves the next value as a rune for cases where you know the iterator has another value.
+// Panics if Next() or RuneValue() panics.
+func (it *Iter) NextRuneValue() rune {
+	it.Next()
+	return it.RuneValue()
+}
+
 // IntValue reads the value and converts it to an int.
 // Panics if Value() method panics.
 // Panics if the value is not convertible to an int.

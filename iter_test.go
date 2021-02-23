@@ -857,6 +857,21 @@ func TestIntValue(t *testing.T) {
 
 	{
 		var (
+			v1   = '1'
+			v2   = '2'
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v rune = iter.RuneValue()
+		assert.Equal(t, v1, v)
+		v = iter.NextRuneValue()
+		assert.Equal(t, v2, v)
+	}
+
+	{
+		var (
 			v1   = int64(1)
 			v2   = int64(2)
 			iter = Of(v1, v2)
