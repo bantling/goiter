@@ -3,6 +3,7 @@
 package goiter
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -291,22 +292,30 @@ func TestSingleValueIterFunc(t *testing.T) {
 }
 
 func TestReaderIterFunc(t *testing.T) {
-	rdr := strings.NewReader("t2")
-	iterFunc := ReaderIterFunc(rdr)
+	var (
+		str      = "t2"
+		iterFunc = ReaderIterFunc(strings.NewReader(str))
+		iter     = OfReader(strings.NewReader(str))
+		raw      = []byte(str)
+		val      interface{}
+		next     bool
+	)
 
-	val, next := iterFunc()
-	assert.Equal(t, byte('t'), val)
-	assert.True(t, next)
+	for _, abyte := range raw {
+		val, next = iterFunc()
+		assert.Equal(t, abyte, val)
+		assert.True(t, next)
 
-	val, next = iterFunc()
-	assert.Equal(t, byte('2'), val)
-	assert.True(t, next)
+		assert.Equal(t, abyte, iter.NextValue())
+	}
 
 	_, next = iterFunc()
 	assert.False(t, next)
 
 	_, next = iterFunc()
 	assert.False(t, next)
+
+	assert.False(t, iter.Next())
 }
 
 func TestReaderToRunesIterFunc(t *testing.T) {
@@ -341,16 +350,19 @@ func TestReaderToRunesIterFunc(t *testing.T) {
 
 	for _, input := range inputs {
 		var (
-			src      = strings.NewReader(input)
-			iterFunc = ReaderToRunesIterFunc(src)
+			iterFunc = ReaderToRunesIterFunc(strings.NewReader(input))
+			iter     = OfReaderRunes(strings.NewReader(input))
 			val      interface{}
 			next     bool
 		)
 
 		for _, char := range []rune(input) {
+			fmt.Printf("input = %s\n", input)
 			val, next = iterFunc()
 			assert.Equal(t, char, val)
 			assert.True(t, next)
+
+			assert.Equal(t, char, iter.NextValue())
 		}
 
 		val, next = iterFunc()
@@ -360,6 +372,8 @@ func TestReaderToRunesIterFunc(t *testing.T) {
 		val, next = iterFunc()
 		assert.Equal(t, utf8.RuneError, val)
 		assert.False(t, next)
+
+		assert.False(t, iter.Next())
 	}
 }
 
@@ -377,8 +391,8 @@ func TestReaderToLinesIterFunc(t *testing.T) {
 
 	for _, input := range inputs {
 		var (
-			src      = strings.NewReader(input)
-			iterFunc = ReaderToLinesIterFunc(src)
+			iterFunc = ReaderToLinesIterFunc(strings.NewReader(input))
+			iter     = OfReaderLines(strings.NewReader(input))
 			lines    = linesRegex.Split(input, -1)
 			val      interface{}
 			next     bool
@@ -388,6 +402,12 @@ func TestReaderToLinesIterFunc(t *testing.T) {
 			val, next = iterFunc()
 			assert.Equal(t, line, val)
 			assert.Equal(t, input != "", next)
+
+			if input == "" {
+				assert.False(t, iter.Next())
+			} else {
+				assert.Equal(t, line, iter.NextValue())
+			}
 		}
 
 		val, next = iterFunc()
@@ -397,6 +417,10 @@ func TestReaderToLinesIterFunc(t *testing.T) {
 		val, next = iterFunc()
 		assert.Equal(t, "", val)
 		assert.False(t, next)
+
+		if input != "" {
+			assert.False(t, iter.Next())
+		}
 	}
 }
 

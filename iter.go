@@ -400,6 +400,24 @@ func OfElements(item interface{}) *Iter {
 	return NewIter(ElementsIterFunc(reflect.ValueOf(item)))
 }
 
+// OfReader constructs an Iter that iterates the bytes of a reader.
+// See ReaderIterFunc for details.
+func OfReader(src io.Reader) *Iter {
+	return NewIter(ReaderIterFunc(src))
+}
+
+// OfReaderRunes constructs an Iter that iterates the runes of a reader.
+// See ReaderToRunesIterFunc for details.
+func OfReaderRunes(src io.Reader) *Iter {
+	return NewIter(ReaderToRunesIterFunc(src))
+}
+
+// OfReaderLines constructs an Iter that iterates the lines of a reader.
+// See ReaderToLinesIterFunc for details.
+func OfReaderLines(src io.Reader) *Iter {
+	return NewIter(ReaderToLinesIterFunc(src))
+}
+
 // OfIterables constructs an Iter that iterates each Iterable passed.
 func OfIterables(iterables ...Iterable) *Iter {
 	return NewIter(IterablesFunc(iterables))
