@@ -10,9 +10,17 @@ import (
 	"unicode/utf8"
 )
 
+// Error constants
 const (
-	// InvalidUTF8EncodingError indicates a sequence of byutes that is not a valid UTF8 encoding
 	InvalidUTF8EncodingError = "Invalid UTF 8 encoding"
+	ErrNewIterNeedsIterator  = "NewIter requires an iterator"
+	ErrNextExhaustedIter     = "Iter.Next called on exhausted iterator"
+	ErrValueExhaustedIter    = "Iter.Value called on exhausted iterator"
+	ErrValueNextFirst        = "Iter.Next has to be called before iter.Value"
+	ErrValueCannotBeNil      = "value cannot be nil"
+	ErrUnreadExhaustedIter   = "Iter.Unread called on exhausted iterator"
+	ErrColsGreaterThanZero   = "cols must be > 0"
+	ErrRowsGreaterThanZero   = "rows must be > 0"
 )
 
 var (
@@ -359,6 +367,7 @@ func FlattenArraySliceAsType(value interface{}, elementVal interface{}) interfac
 
 // Iter is an iterator of values of an arbitrary type.
 // Technically, the values can be different types, but that is usually undesirable.
+// Iter is an Iterable
 type Iter struct {
 	iter       func() (interface{}, bool)
 	nextCalled bool
@@ -372,7 +381,7 @@ type Iter struct {
 // Panics if iter is nil.
 func NewIter(iter func() (interface{}, bool)) *Iter {
 	if iter == nil {
-		panic("NewIter requires an iterator")
+		panic(ErrNewIterNeedsIterator)
 	}
 
 	return &Iter{iter: iter}
@@ -426,11 +435,10 @@ func OfIterables(iterables ...Iterable) *Iter {
 
 // Next returns true if there is another item to be read by Value.
 // Once Next returns false, further calls to Next or Value panic.
-//
 func (it *Iter) Next() bool {
 	// Die if iterator already exhausted
 	if it.iter == nil {
-		panic("Iter.Next called on exhausted iterator")
+		panic(ErrNextExhaustedIter)
 	}
 
 	// Check buffer first in case items have been unread
@@ -460,11 +468,11 @@ func (it *Iter) Next() bool {
 // Panics if Next has not been called since the last time Value was called.
 func (it *Iter) Value() interface{} {
 	if it.iter == nil {
-		panic("Iter.Value called on exhausted iteraror")
+		panic(ErrValueExhaustedIter)
 	}
 
 	if !it.nextCalled {
-		panic("Iter.Next has to be called before iter.Value")
+		panic(ErrValueNextFirst)
 	}
 
 	// Clear nextCalled flag
@@ -480,7 +488,7 @@ func (it *Iter) Value() interface{} {
 // Panics if the value is not convertible to the type of the given value.
 func (it *Iter) ValueOfType(value interface{}) interface{} {
 	if value == nil {
-		panic("value cannot be nil")
+		panic(ErrValueCannotBeNil)
 	}
 
 	return reflect.ValueOf(it.Value()).Convert(reflect.TypeOf(value)).Interface()
@@ -766,7 +774,7 @@ func (it *Iter) NextStringValue() string {
 func (it *Iter) Unread(val interface{}) {
 	// Die if iterator already exhausted
 	if it.iter == nil {
-		panic("Iter.Unread called on exhausted iterator")
+		panic(ErrUnreadExhaustedIter)
 	}
 
 	it.buffer = append(it.buffer, val)
@@ -774,8 +782,6 @@ func (it *Iter) Unread(val interface{}) {
 
 // Iter is the Iterable interface.
 // By implementing Iterable, algorithms can be written against only Iterable, and accept *Iter or Iterable instances.
-// Returns pointer, as all callers to this iter are exhausting the same set of data.
-// As a rule, there should only be one owner of this iterator.
 func (it *Iter) Iter() *Iter {
 	return it
 }
@@ -790,7 +796,7 @@ func (it *Iter) Iter() *Iter {
 // Panics if cols = 0.
 func (it *Iter) SplitIntoRows(cols uint) [][]interface{} {
 	if cols == 0 {
-		panic("cols must be > 0")
+		panic(ErrColsGreaterThanZero)
 	}
 
 	var (
@@ -828,11 +834,11 @@ func (it *Iter) SplitIntoRows(cols uint) [][]interface{} {
 // Panics if any value is not convertible to the type of the given value.
 func (it *Iter) SplitIntoRowsOf(cols uint, value interface{}) interface{} {
 	if cols == 0 {
-		panic("cols must be > 0")
+		panic(ErrColsGreaterThanZero)
 	}
 
 	if value == nil {
-		panic("value cannot be nil")
+		panic(ErrValueCannotBeNil)
 	}
 
 	var (
@@ -873,7 +879,7 @@ func (it *Iter) SplitIntoRowsOf(cols uint, value interface{}) interface{} {
 // Panics if rows = 0.
 func (it *Iter) SplitIntoColumns(rows uint) [][]interface{} {
 	if rows == 0 {
-		panic("rows must be > 0")
+		panic(ErrRowsGreaterThanZero)
 	}
 
 	// Collect values into a slice first
@@ -919,11 +925,11 @@ func (it *Iter) SplitIntoColumns(rows uint) [][]interface{} {
 // Panics if any value is not convertible to the type of the given value.
 func (it *Iter) SplitIntoColumnsOf(rows uint, value interface{}) interface{} {
 	if rows == 0 {
-		panic("rows must be > 0")
+		panic(ErrRowsGreaterThanZero)
 	}
 
 	if value == nil {
-		panic("value cannot be nil")
+		panic(ErrValueCannotBeNil)
 	}
 
 	// Collect values into a slice first
@@ -986,7 +992,7 @@ func (it *Iter) ToSlice() []interface{} {
 // Panics if any value is not convertible to the type of the given value.
 func (it *Iter) ToSliceOf(value interface{}) interface{} {
 	if value == nil {
-		panic("value cannot be nil")
+		panic(ErrValueCannotBeNil)
 	}
 
 	var (

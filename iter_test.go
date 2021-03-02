@@ -3,7 +3,6 @@
 package goiter
 
 import (
-	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -357,7 +356,6 @@ func TestReaderToRunesIterFunc(t *testing.T) {
 		)
 
 		for _, char := range []rune(input) {
-			fmt.Printf("input = %s\n", input)
 			val, next = iterFunc()
 			assert.Equal(t, char, val)
 			assert.True(t, next)
