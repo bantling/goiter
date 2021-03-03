@@ -101,6 +101,11 @@ func (rp *RunePositionIter) Value() rune {
 	return result
 }
 
+// Unread unreads the given character
+func (rp *RunePositionIter) Unread(char rune) {
+	rp.iter.Unread(char)
+}
+
 // Line returns the current line number, starting at 1
 func (rp *RunePositionIter) Line() int {
 	return rp.line
