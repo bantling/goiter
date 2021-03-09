@@ -16,17 +16,17 @@ func TestRunePositionIter(t *testing.T) {
 		lines       = []string{"line 1", "line 2", "line3", "line44"}
 		iter        = NewRunePositionIter(strings.NewReader(text))
 		char        rune
-		lineNum     = 0
-		lastCharPos = 0
+		lineNum     = 1
+		lastCharPos = 1
 	)
 
 	var lineText strings.Builder
 	for iter.Next() {
 		if char = iter.Value(); char == '\n' {
-			assert.Equal(t, lines[lineNum], lineText.String())
-			assert.Equal(t, len(lines[lineNum]), lastCharPos)
+			assert.Equal(t, lines[lineNum-1], lineText.String())
+			assert.Equal(t, len(lines[lineNum-1]) + 1, lastCharPos)
 			lineNum++
-			assert.Equal(t, lineNum+1, iter.Line())
+			assert.Equal(t, lineNum, iter.Line())
 
 			lineText.Reset()
 		} else {
@@ -35,9 +35,9 @@ func TestRunePositionIter(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, len(lines)-1, lineNum)
+	assert.Equal(t, len(lines), lineNum)
 	assert.Equal(t, len(lines), iter.Line())
-	assert.Equal(t, len(lines[len(lines)-1]), iter.Position())
+	assert.Equal(t, len(lines[len(lines)-1])+1, iter.Position())
 
 	// Test unread
 	iter = NewRunePositionIter(strings.NewReader("a"))
@@ -49,4 +49,44 @@ func TestRunePositionIter(t *testing.T) {
 	assert.Equal(t, 'a', iter.Value())
 
 	assert.False(t, iter.Next())
+	
+	// Test just one space and cr
+	iter = NewRunePositionIter(strings.NewReader(" \r"))
+	assert.True(t, iter.Next())
+	assert.Equal(t, ' ', iter.Value())
+	assert.True(t, iter.Next())
+	assert.Equal(t, '\n', iter.Value())
+	assert.Equal(t, 2, iter.Line())
+	assert.Equal(t, 1, iter.Position())
+
+	assert.False(t, iter.Next())
+	
+	// Panics if we call next again
+	func() {
+		defer func() {
+			assert.Equal(t, ErrNextExhaustedIter, recover())
+		}()
+		
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+	
+	// Corner case of ending with a CR
+	iter = NewRunePositionIter(strings.NewReader("\r"))
+	assert.True(t, iter.Next())
+	assert.Equal(t, '\n', iter.Value())
+	assert.Equal(t, 2, iter.Line())
+	assert.Equal(t, 1, iter.Position())
+	
+	assert.False(t, iter.Next());
+	
+	// Panics if we call next again
+	func() {
+		defer func() {
+			assert.Equal(t, ErrNextExhaustedIter, recover())
+		}()
+		
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()	
 }

@@ -26,7 +26,7 @@ func NewRunePositionIter(src io.Reader) *RunePositionIter {
 		lastChar:       0,
 		lastReadWasEOF: false,
 		line:           1,
-		position:       0,
+		position:       1,
 	}
 }
 
@@ -55,7 +55,7 @@ func (rp *RunePositionIter) Next() bool {
 		case '\r':
 			// Increase line and flag it
 			rp.line++
-			rp.position = 0
+			rp.position = 1
 
 			// If it is a CRLF, consume the LF
 			if rp.iter.Next() {
@@ -74,7 +74,7 @@ func (rp *RunePositionIter) Next() bool {
 
 		case '\n':
 			rp.line++
-			rp.position = 0
+			rp.position = 1
 
 		default:
 			// Increment position in line - since EOLs reset to 0, it will always be >= 1 for non-EOL chars
