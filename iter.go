@@ -60,6 +60,45 @@ type Iterable interface {
 	Iter() *Iter
 }
 
+// IterableFunc is an adapter to allow use of ordinary functions as Iterables.
+// If f is a function with the appropriate signature, IterableFunc(f) is an Iterable that calls f.
+type IterableFunc func() *Iter
+
+// Iter () calls i()
+func (i IterableFunc) Iter() *Iter {
+	return i()
+}
+
+// Wrapper is an Iterable with an embedded *Iter field, where the field can be changed at any time.
+type Wrapper struct {
+	iter *Iter
+}
+
+// WrapperOf constructs a Wrapper of the given *Iter; panics if the argument is nil
+func WrapperOf(iter *Iter) *Wrapper {
+	wrapper := &Wrapper{}
+	wrapper.SetIter(iter)
+
+	return wrapper
+}
+
+// SetIter sets the wrapped *Iter; panics if the argument is nil
+func (w *Wrapper) SetIter(iter *Iter) {
+	if iter == nil {
+		panic("Wrapper: cannot call SetIter(nil)")
+	}
+	w.iter = iter
+}
+
+// Iter is the Iterable implementation for Wrapper
+func (w Wrapper) Iter() *Iter {
+	if w.iter == nil {
+		panic("Wrapper: cannot call Iter() on the zero value")
+	}
+
+	return w.iter
+}
+
 // IterablesFunc iterates the values of any number of Iterables in the order passed
 func IterablesFunc(iterables []Iterable) func() (interface{}, bool) {
 	var (

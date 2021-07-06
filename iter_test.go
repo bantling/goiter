@@ -119,6 +119,53 @@ func TestArraySliceIterFunc(t *testing.T) {
 	}()
 }
 
+func TestIterableFunc(t *testing.T) {
+	var (
+		iter     *Iter    = Of(1)
+		iterable Iterable = IterableFunc(func() *Iter { return iter })
+	)
+
+	assert.True(t, iter == iterable.Iter())
+	assert.Equal(t, 1, iterable.Iter().NextIntValue())
+}
+
+func TestWrapper(t *testing.T) {
+	var (
+		iter     *Iter    = Of(1)
+		w        *Wrapper = WrapperOf(iter)
+		iterable Iterable = w
+	)
+
+	assert.True(t, iter == iterable.Iter())
+	assert.Equal(t, 1, iterable.Iter().NextIntValue())
+
+	iter = Of(2)
+	w.SetIter(iter)
+
+	assert.True(t, iter == iterable.Iter())
+	assert.Equal(t, 2, iterable.Iter().NextIntValue())
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Wrapper: cannot call Iter() on the zero value", recover())
+		}()
+
+		w = &Wrapper{}
+		w.Iter()
+		assert.Fail(t, "Must panic on Iter of zero value")
+	}()
+
+	func() {
+		defer func() {
+			assert.Equal(t, "Wrapper: cannot call SetIter(nil)", recover())
+		}()
+
+		w = &Wrapper{}
+		w.SetIter(nil)
+		assert.Fail(t, "Must panic on SetIter(nil)")
+	}()
+}
+
 func TestIterablesFunc(t *testing.T) {
 	// No Iterables
 	iterFunc := IterablesFunc([]Iterable{})

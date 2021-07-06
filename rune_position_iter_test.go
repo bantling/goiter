@@ -24,7 +24,7 @@ func TestRunePositionIter(t *testing.T) {
 	for iter.Next() {
 		if char = iter.Value(); char == '\n' {
 			assert.Equal(t, lines[lineNum-1], lineText.String())
-			assert.Equal(t, len(lines[lineNum-1]) + 1, lastCharPos)
+			assert.Equal(t, len(lines[lineNum-1])+1, lastCharPos)
 			lineNum++
 			assert.Equal(t, lineNum, iter.Line())
 
@@ -49,7 +49,7 @@ func TestRunePositionIter(t *testing.T) {
 	assert.Equal(t, 'a', iter.Value())
 
 	assert.False(t, iter.Next())
-	
+
 	// Test just one space and cr
 	iter = NewRunePositionIter(strings.NewReader(" \r"))
 	assert.True(t, iter.Next())
@@ -60,33 +60,33 @@ func TestRunePositionIter(t *testing.T) {
 	assert.Equal(t, 1, iter.Position())
 
 	assert.False(t, iter.Next())
-	
+
 	// Panics if we call next again
 	func() {
 		defer func() {
 			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
-		
+
 		iter.Next()
 		assert.Fail(t, "Must panic")
 	}()
-	
+
 	// Corner case of ending with a CR
 	iter = NewRunePositionIter(strings.NewReader("\r"))
 	assert.True(t, iter.Next())
 	assert.Equal(t, '\n', iter.Value())
 	assert.Equal(t, 2, iter.Line())
 	assert.Equal(t, 1, iter.Position())
-	
-	assert.False(t, iter.Next());
-	
+
+	assert.False(t, iter.Next())
+
 	// Panics if we call next again
 	func() {
 		defer func() {
 			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
-		
+
 		iter.Next()
 		assert.Fail(t, "Must panic")
-	}()	
+	}()
 }
