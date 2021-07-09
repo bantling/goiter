@@ -110,148 +110,13 @@ func TestArraySliceIterFunc(t *testing.T) {
 	// Non-array/slice
 	func() {
 		defer func() {
-			assert.Equal(t, "ArraySliceIterFunc argument must be an array or slice", recover())
+			assert.Equal(t, ErrArraySliceIterFuncArg, recover())
 		}()
 
 		ArraySliceIterFunc(reflect.ValueOf(1))
 
 		assert.Fail(t, "Must panic on non-array/slice")
 	}()
-}
-
-func TestIterableFunc(t *testing.T) {
-	var (
-		iter     *Iter    = Of(1)
-		iterable Iterable = IterableFunc(func() *Iter { return iter })
-	)
-
-	assert.True(t, iter == iterable.Iter())
-	assert.Equal(t, 1, iterable.Iter().NextIntValue())
-}
-
-func TestWrapper(t *testing.T) {
-	var (
-		iter     *Iter    = Of(1)
-		w        *Wrapper = WrapperOf(iter)
-		iterable Iterable = w
-	)
-
-	assert.True(t, iter == iterable.Iter())
-	assert.Equal(t, 1, iterable.Iter().NextIntValue())
-
-	iter = Of(2)
-	w.SetIter(iter)
-
-	assert.True(t, iter == iterable.Iter())
-	assert.Equal(t, 2, iterable.Iter().NextIntValue())
-
-	func() {
-		defer func() {
-			assert.Equal(t, "Wrapper: cannot call Iter() on the zero value", recover())
-		}()
-
-		w = &Wrapper{}
-		w.Iter()
-		assert.Fail(t, "Must panic on Iter of zero value")
-	}()
-
-	func() {
-		defer func() {
-			assert.Equal(t, "Wrapper: cannot call SetIter(nil)", recover())
-		}()
-
-		w = &Wrapper{}
-		w.SetIter(nil)
-		assert.Fail(t, "Must panic on SetIter(nil)")
-	}()
-}
-
-func TestIterablesFunc(t *testing.T) {
-	// No Iterables
-	iterFunc := IterablesFunc([]Iterable{})
-
-	_, next := iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// One nil Iterable
-	iterFunc = IterablesFunc([]Iterable{nil})
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// One empty Iterable
-	iterFunc = IterablesFunc([]Iterable{Of()})
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// One Iterable of one value
-	iterFunc = IterablesFunc([]Iterable{Of(1)})
-
-	val, next := iterFunc()
-	assert.Equal(t, 1, val)
-	assert.True(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// One Iterable of two values
-	iterFunc = IterablesFunc([]Iterable{Of(1, 2)})
-
-	val, next = iterFunc()
-	assert.Equal(t, 1, val)
-	assert.True(t, next)
-
-	val, next = iterFunc()
-	assert.Equal(t, 2, val)
-	assert.True(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// Mix of nil, empty, non-empty Iterables
-	iterFunc = IterablesFunc([]Iterable{nil, Of(), Of(1), nil, Of(2), Of(), Of(3), Of(4, 5)})
-
-	val, next = iterFunc()
-	assert.Equal(t, 1, val)
-	assert.True(t, next)
-
-	val, next = iterFunc()
-	assert.Equal(t, 2, val)
-	assert.True(t, next)
-
-	val, next = iterFunc()
-	assert.Equal(t, 3, val)
-	assert.True(t, next)
-
-	val, next = iterFunc()
-	assert.Equal(t, 4, val)
-	assert.True(t, next)
-
-	val, next = iterFunc()
-	assert.Equal(t, 5, val)
-	assert.True(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
 }
 
 func TestMapIterFunc(t *testing.T) {
@@ -303,7 +168,7 @@ func TestMapIterFunc(t *testing.T) {
 	// Non-map
 	func() {
 		defer func() {
-			assert.Equal(t, "MapIterFunc argument must be a map", recover())
+			assert.Equal(t, ErrMapIterFuncArg, recover())
 		}()
 
 		MapIterFunc(reflect.ValueOf(1))
@@ -337,7 +202,105 @@ func TestSingleValueIterFunc(t *testing.T) {
 	assert.False(t, next)
 }
 
-func TestReaderIterFunc(t *testing.T) {
+func TestElementsIterFunc(t *testing.T) {
+	// ==== Array
+
+	// Empty
+	iterFunc := ElementsIterFunc(reflect.ValueOf([0]int{}))
+
+	_, next := iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// One element
+	iterFunc = ElementsIterFunc(reflect.ValueOf([1]int{1}))
+
+	val, next := iterFunc()
+	assert.Equal(t, 1, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// ==== Slice
+
+	// Empty
+	iterFunc = ElementsIterFunc(reflect.ValueOf([]int{}))
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// One element
+	iterFunc = ElementsIterFunc(reflect.ValueOf([]int{1}))
+
+	val, next = iterFunc()
+	assert.Equal(t, 1, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// ==== Map
+
+	// Empty
+	iterFunc = ElementsIterFunc(reflect.ValueOf(map[int]int{}))
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// One element
+	iterFunc = ElementsIterFunc(reflect.ValueOf(map[int]int{1: 2}))
+
+	val, next = iterFunc()
+	assert.Equal(t, KeyValue{Key: 1, Value: 2}, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// ==== Nil ptr
+
+	iterFunc = ElementsIterFunc(reflect.ValueOf((*int)(nil)))
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// ==== Single value
+
+	iterFunc = ElementsIterFunc(reflect.ValueOf(5))
+
+	val, next = iterFunc()
+	assert.Equal(t, 5, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+}
+
+func TestReaderIterFuncAndOfReader(t *testing.T) {
 	var (
 		str      = "t2"
 		iterFunc = ReaderIterFunc(strings.NewReader(str))
@@ -364,7 +327,7 @@ func TestReaderIterFunc(t *testing.T) {
 	assert.False(t, iter.Next())
 }
 
-func TestReaderToRunesIterFunc(t *testing.T) {
+func TestReaderToRunesIterFuncAndOfReaderRunes(t *testing.T) {
 	inputs := []string{
 		"",
 		// 1 byte UTF8
@@ -422,7 +385,7 @@ func TestReaderToRunesIterFunc(t *testing.T) {
 	}
 }
 
-func TestReaderToLinesIterFunc(t *testing.T) {
+func TestReaderToLinesIterFuncAndOfReaderLines(t *testing.T) {
 	var (
 		inputs = []string{
 			"",
@@ -469,127 +432,6 @@ func TestReaderToLinesIterFunc(t *testing.T) {
 	}
 }
 
-func TestElementsIterFunc(t *testing.T) {
-	// Empty array
-	iterFunc := ElementsIterFunc(reflect.ValueOf([0]int{}))
-
-	_, next := iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// Empty slice
-	iterFunc = ElementsIterFunc(reflect.ValueOf([]int{}))
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// One element array
-	iterFunc = ElementsIterFunc(reflect.ValueOf([1]int{1}))
-
-	val, next := iterFunc()
-	assert.Equal(t, 1, val)
-	assert.True(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// Empty slice
-	iterFunc = ElementsIterFunc(reflect.ValueOf([]int{}))
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// One element slice
-	iterFunc = ElementsIterFunc(reflect.ValueOf([]int{1}))
-
-	val, next = iterFunc()
-	assert.Equal(t, 1, val)
-	assert.True(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// Empty Iterable
-	iterFunc = ElementsIterFunc(reflect.ValueOf(Of()))
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// One element Iterable
-	iterFunc = ElementsIterFunc(reflect.ValueOf(Of(1)))
-
-	val, next = iterFunc()
-	assert.Equal(t, 1, val)
-	assert.True(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// Empty map
-	iterFunc = ElementsIterFunc(reflect.ValueOf(map[int]int{}))
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// One element map
-	iterFunc = ElementsIterFunc(reflect.ValueOf(map[int]int{1: 2}))
-
-	val, next = iterFunc()
-	assert.Equal(t, KeyValue{Key: 1, Value: 2}, val)
-	assert.True(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// Nil ptr
-	iterFunc = ElementsIterFunc(reflect.ValueOf((*int)(nil)))
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	// Single value
-	iterFunc = ElementsIterFunc(reflect.ValueOf(5))
-
-	val, next = iterFunc()
-	assert.Equal(t, 5, val)
-	assert.True(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-
-	_, next = iterFunc()
-	assert.False(t, next)
-}
-
 func TestFlattenArraySlice(t *testing.T) {
 	f := FlattenArraySlice([2]int{1, 2})
 	assert.Equal(t, []interface{}{1, 2}, f)
@@ -618,6 +460,40 @@ func TestFlattenArraySliceAsType(t *testing.T) {
 	assert.Equal(t, []int{1, 2, 3, 4, 5, 6, 7, 8}, f)
 }
 
+func TestNewIter(t *testing.T) {
+	iter := NewIter(ArraySliceIterFunc(reflect.ValueOf([]int{})))
+
+	next := iter.Next()
+	assert.False(t, next)
+
+	func() {
+		defer func() {
+			assert.Equal(t, ErrNextExhaustedIter, recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+
+	iter = NewIter(ArraySliceIterFunc(reflect.ValueOf([]int{1})))
+
+	next = iter.Next()
+	assert.True(t, next)
+	assert.Equal(t, 1, iter.Value())
+
+	next = iter.Next()
+	assert.False(t, next)
+
+	func() {
+		defer func() {
+			assert.Equal(t, ErrNextExhaustedIter, recover())
+		}()
+
+		iter.Next()
+		assert.Fail(t, "Must panic")
+	}()
+}
+
 func TestOf(t *testing.T) {
 	// Empty items
 	iter := Of()
@@ -627,7 +503,7 @@ func TestOf(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -646,7 +522,7 @@ func TestOf(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -669,7 +545,7 @@ func TestOf(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -691,8 +567,9 @@ func TestOfFlatten(t *testing.T) {
 }
 
 func TestOfElements(t *testing.T) {
-	// Slice
-	iter := OfElements([]int{5, 6})
+	// ==== Array
+
+	iter := OfElements([2]int{5, 6})
 
 	next := iter.Next()
 	assert.True(t, next)
@@ -707,24 +584,29 @@ func TestOfElements(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
 		assert.Fail(t, "Must panic")
 	}()
 
-	// Iterable
-	iter = OfElements(Of(1))
+	// ==== Slice
+
+	iter = OfElements([]int{5, 6})
 
 	next = iter.Next()
 	assert.True(t, next)
-	assert.Equal(t, 1, iter.Value())
+	assert.Equal(t, 5, iter.Value())
+
+	next = iter.Next()
+	assert.True(t, next)
+	assert.Equal(t, 6, iter.Value())
 
 	next = iter.Next()
 	assert.False(t, next)
 
-	// Map
+	// ==== Map
 	iter = OfElements(map[int]int{1: 2})
 
 	next = iter.Next()
@@ -734,13 +616,15 @@ func TestOfElements(t *testing.T) {
 	next = iter.Next()
 	assert.False(t, next)
 
-	// Nil
+	// ==== Nil
+
 	iter = OfElements(nil)
 
 	next = iter.Next()
 	assert.False(t, next)
 
-	// One item
+	// ==== One item
+
 	iter = OfElements(5)
 
 	next = iter.Next()
@@ -749,65 +633,6 @@ func TestOfElements(t *testing.T) {
 
 	next = iter.Next()
 	assert.False(t, next)
-}
-
-func TestOfIterables(t *testing.T) {
-	// Empty iterables
-	iter := OfIterables()
-
-	next := iter.Next()
-	assert.False(t, next)
-
-	func() {
-		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
-		}()
-
-		iter.Next()
-		assert.Fail(t, "Must panic")
-	}()
-
-	// One iterable
-	iter = OfIterables(Of(5))
-
-	next = iter.Next()
-	assert.True(t, next)
-	assert.Equal(t, 5, iter.Value())
-
-	next = iter.Next()
-	assert.False(t, next)
-
-	func() {
-		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
-		}()
-
-		iter.Next()
-		assert.Fail(t, "Must panic")
-	}()
-
-	// Mix of nil, empty, non-empty Iterables
-	iter = OfIterables(nil, Of(5), Of(), Of(6))
-
-	next = iter.Next()
-	assert.True(t, next)
-	assert.Equal(t, 5, iter.Value())
-
-	next = iter.Next()
-	assert.True(t, next)
-	assert.Equal(t, 6, iter.Value())
-
-	next = iter.Next()
-	assert.False(t, next)
-
-	func() {
-		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
-		}()
-
-		iter.Next()
-		assert.Fail(t, "Must panic")
-	}()
 }
 
 func TestValueOfType(t *testing.T) {
@@ -840,6 +665,36 @@ func TestBoolValue(t *testing.T) {
 }
 
 func TestIntValue(t *testing.T) {
+	{
+		var (
+			v1   = byte(1)
+			v2   = byte(2)
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v byte = iter.ByteValue()
+		assert.Equal(t, v1, v)
+		v = iter.NextByteValue()
+		assert.Equal(t, v2, v)
+	}
+
+	{
+		var (
+			v1   = '1'
+			v2   = '2'
+			iter = Of(v1, v2)
+		)
+
+		next := iter.Next()
+		assert.True(t, next)
+		var v rune = iter.RuneValue()
+		assert.Equal(t, v1, v)
+		v = iter.NextRuneValue()
+		assert.Equal(t, v2, v)
+	}
+
 	{
 		var (
 			v1   = 1
@@ -902,21 +757,6 @@ func TestIntValue(t *testing.T) {
 
 	{
 		var (
-			v1   = '1'
-			v2   = '2'
-			iter = Of(v1, v2)
-		)
-
-		next := iter.Next()
-		assert.True(t, next)
-		var v rune = iter.RuneValue()
-		assert.Equal(t, v1, v)
-		v = iter.NextRuneValue()
-		assert.Equal(t, v2, v)
-	}
-
-	{
-		var (
 			v1   = int64(1)
 			v2   = int64(2)
 			iter = Of(v1, v2)
@@ -946,20 +786,7 @@ func TestUintValue(t *testing.T) {
 		v = iter.NextUintValue()
 		assert.Equal(t, v2, v)
 	}
-	{
-		var (
-			v1   = byte(1)
-			v2   = byte(2)
-			iter = Of(v1, v2)
-		)
 
-		next := iter.Next()
-		assert.True(t, next)
-		var v byte = iter.ByteValue()
-		assert.Equal(t, v1, v)
-		v = iter.NextByteValue()
-		assert.Equal(t, v2, v)
-	}
 	{
 		var (
 			v1   = uint8(1)
@@ -1131,41 +958,11 @@ func TestUnread(t *testing.T) {
 	// Unreading doesn't affect panic on exhausted iter
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
 		assert.Fail(t, "Must die")
-	}()
-}
-
-func TestIterIsIterable(t *testing.T) {
-	var (
-		iter     = Of(0)
-		iterable = Iterable(iter)
-		it       = iterable.Iter()
-	)
-	assert.True(t, it == iter)
-	assert.True(t, it.Next())
-	assert.Equal(t, 0, it.Value())
-	assert.False(t, it.Next())
-
-	func() {
-		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
-		}()
-
-		it.Next()
-		assert.Fail(t, "Must panic")
-	}()
-
-	func() {
-		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
-		}()
-
-		iter.Next()
-		assert.Fail(t, "Must panic")
 	}()
 }
 
@@ -1179,7 +976,7 @@ func TestSplitIntoRows(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1192,7 +989,7 @@ func TestSplitIntoRows(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1226,7 +1023,7 @@ func TestSplitIntoRows(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1239,7 +1036,7 @@ func TestSplitIntoRows(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1253,7 +1050,7 @@ func TestSplitIntoRows(t *testing.T) {
 	// Die if n < 1
 	func() {
 		defer func() {
-			assert.Equal(t, "cols must be > 0", recover())
+			assert.Equal(t, ErrColsGreaterThanZero, recover())
 		}()
 
 		iter.SplitIntoRows(0)
@@ -1271,7 +1068,7 @@ func TestSplitIntoRowsOf(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1284,7 +1081,7 @@ func TestSplitIntoRowsOf(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1323,7 +1120,7 @@ func TestSplitIntoRowsOf(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1336,7 +1133,7 @@ func TestSplitIntoRowsOf(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1350,7 +1147,7 @@ func TestSplitIntoRowsOf(t *testing.T) {
 	// Die if n < 1
 	func() {
 		defer func() {
-			assert.Equal(t, "cols must be > 0", recover())
+			assert.Equal(t, ErrColsGreaterThanZero, recover())
 		}()
 
 		iter.SplitIntoRowsOf(0, 0)
@@ -1360,7 +1157,7 @@ func TestSplitIntoRowsOf(t *testing.T) {
 	// Die if value is nil
 	func() {
 		defer func() {
-			assert.Equal(t, "value cannot be nil", recover())
+			assert.Equal(t, ErrValueCannotBeNil, recover())
 		}()
 
 		iter.SplitIntoRowsOf(1, nil)
@@ -1378,7 +1175,7 @@ func TestSplitIntoColumns(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1391,7 +1188,7 @@ func TestSplitIntoColumns(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1425,7 +1222,7 @@ func TestSplitIntoColumns(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1438,7 +1235,7 @@ func TestSplitIntoColumns(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1452,7 +1249,7 @@ func TestSplitIntoColumns(t *testing.T) {
 	// Die if n < 1
 	func() {
 		defer func() {
-			assert.Equal(t, "rows must be > 0", recover())
+			assert.Equal(t, ErrRowsGreaterThanZero, recover())
 		}()
 
 		iter.SplitIntoColumns(0)
@@ -1470,7 +1267,7 @@ func TestSplitIntoColumnsOf(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1483,7 +1280,7 @@ func TestSplitIntoColumnsOf(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1522,7 +1319,7 @@ func TestSplitIntoColumnsOf(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1535,7 +1332,7 @@ func TestSplitIntoColumnsOf(t *testing.T) {
 
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1549,7 +1346,7 @@ func TestSplitIntoColumnsOf(t *testing.T) {
 	// Die if n < 1
 	func() {
 		defer func() {
-			assert.Equal(t, "rows must be > 0", recover())
+			assert.Equal(t, ErrRowsGreaterThanZero, recover())
 		}()
 
 		iter.SplitIntoColumnsOf(0, 0)
@@ -1559,7 +1356,7 @@ func TestSplitIntoColumnsOf(t *testing.T) {
 	// Die if value is nil
 	func() {
 		defer func() {
-			assert.Equal(t, "value cannot be nil", recover())
+			assert.Equal(t, ErrValueCannotBeNil, recover())
 		}()
 
 		iter.SplitIntoColumnsOf(1, nil)
@@ -1576,7 +1373,7 @@ func TestToSlice(t *testing.T) {
 	iter.ToSlice()
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1593,7 +1390,7 @@ func TestToSliceOf(t *testing.T) {
 	iter.ToSliceOf(0)
 	func() {
 		defer func() {
-			assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+			assert.Equal(t, ErrNextExhaustedIter, recover())
 		}()
 
 		iter.Next()
@@ -1618,7 +1415,7 @@ func TestForLoop(t *testing.T) {
 
 		func() {
 			defer func() {
-				assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+				assert.Equal(t, ErrNextExhaustedIter, recover())
 			}()
 
 			iter.Next()
@@ -1628,25 +1425,286 @@ func TestForLoop(t *testing.T) {
 
 	func() {
 		var (
-			iter     *Iter
+			iter     = OfElements([]int{6, 7})
 			idx      = 0
-			expected = []int{5}
+			expected = []int{6, 7}
 		)
 
-		for iter = OfElements(5); iter.Next(); {
+		for iter.Next() {
 			assert.Equal(t, expected[idx], iter.Value())
 			idx++
 		}
 
-		assert.Equal(t, 1, idx)
+		assert.Equal(t, 2, idx)
 
 		func() {
 			defer func() {
-				assert.Equal(t, "Iter.Next called on exhausted iterator", recover())
+				assert.Equal(t, ErrNextExhaustedIter, recover())
 			}()
 
 			iter.Next()
 			assert.Fail(t, "Must panic")
 		}()
 	}()
+}
+
+func TestIterablesFunc(t *testing.T) {
+	// No Iterables
+	iterFunc := IterablesFunc([]*Iterable{})()
+
+	_, next := iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// One nil Iterable
+	iterFunc = IterablesFunc([]*Iterable{nil})()
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// One empty Iterable
+	iterFunc = IterablesFunc([]*Iterable{IterableOf()})()
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// One Iterable of one value
+	iterFunc = IterablesFunc([]*Iterable{IterableOf(1)})()
+
+	val, next := iterFunc()
+	assert.Equal(t, 1, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// One Iterable of two values
+	iterFunc = IterablesFunc([]*Iterable{IterableOf(1, 2)})()
+
+	val, next = iterFunc()
+	assert.Equal(t, 1, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, 2, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	// Mix of nil, empty, non-empty Iterables
+	iterFunc = IterablesFunc([]*Iterable{nil, IterableOf(), IterableOf(1), nil, IterableOf(2), IterableOf(), IterableOf(3), IterableOf(4, 5)})()
+
+	val, next = iterFunc()
+	assert.Equal(t, 1, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, 2, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, 3, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, 4, val)
+	assert.True(t, next)
+
+	val, next = iterFunc()
+	assert.Equal(t, 5, val)
+	assert.True(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+
+	_, next = iterFunc()
+	assert.False(t, next)
+}
+
+func TestIterableOfGenerator(t *testing.T) {
+	iterable := IterableOfGenerator(func() func() (interface{}, bool) {
+		return ArraySliceIterFunc(reflect.ValueOf([]int{1}))
+	})
+
+	for i := 0; i < 2; i++ {
+		iter := iterable.Iter()
+
+		assert.True(t, iter.Next())
+		assert.Equal(t, 1, iter.Value())
+
+		assert.False(t, iter.Next())
+	}
+}
+
+func TestIterableOf(t *testing.T) {
+	iterable := IterableOf(1, 2)
+
+	for i := 0; i < 2; i++ {
+		iter := iterable.Iter()
+
+		assert.True(t, iter.Next())
+		assert.Equal(t, 1, iter.Value())
+
+		assert.True(t, iter.Next())
+		assert.Equal(t, 2, iter.Value())
+
+		assert.False(t, iter.Next())
+	}
+}
+
+func TestIterableOfFlatten(t *testing.T) {
+	iterable := IterableOfFlatten(nil)
+
+	for i := 0; i < 2; i++ {
+		iter := iterable.Iter()
+
+		assert.False(t, iter.Next())
+	}
+
+	iterable = IterableOfFlatten([][]int{{1}, {2, 3}})
+
+	for i := 0; i < 2; i++ {
+		iter := iterable.Iter()
+
+		assert.True(t, iter.Next())
+		assert.Equal(t, 1, iter.Value())
+
+		assert.True(t, iter.Next())
+		assert.Equal(t, 2, iter.Value())
+
+		assert.True(t, iter.Next())
+		assert.Equal(t, 3, iter.Value())
+
+		assert.False(t, iter.Next())
+	}
+}
+
+func TestIterableOfElements(t *testing.T) {
+	iterable := IterableOfElements(nil)
+
+	for i := 0; i < 2; i++ {
+		iter := iterable.Iter()
+
+		assert.False(t, iter.Next())
+	}
+
+	iterable = IterableOfElements([]int{1, 2, 3})
+
+	for i := 0; i < 2; i++ {
+		iter := iterable.Iter()
+
+		assert.True(t, iter.Next())
+		assert.Equal(t, 1, iter.Value())
+
+		assert.True(t, iter.Next())
+		assert.Equal(t, 2, iter.Value())
+
+		assert.True(t, iter.Next())
+		assert.Equal(t, 3, iter.Value())
+
+		assert.False(t, iter.Next())
+	}
+}
+
+func TestIterableOfIterables(t *testing.T) {
+	// Empty iterables
+	iterable := IterableOfIterables()
+
+	for i := 0; i < 2; i++ {
+		iter := iterable.Iter()
+
+		assert.False(t, iter.Next())
+	}
+
+	// One iterable
+	iterable = IterableOfIterables(IterableOf(5))
+
+	for i := 0; i < 2; i++ {
+		iter := iterable.Iter()
+
+		assert.True(t, iter.Next())
+		assert.Equal(t, 5, iter.Value())
+
+		assert.False(t, iter.Next())
+	}
+
+	// Mix of nil, empty, non-empty Iterables
+	iterable = IterableOfIterables(nil, IterableOf(5), IterableOf(), IterableOf(6))
+
+	for i := 0; i < 2; i++ {
+		iter := iterable.Iter()
+
+		assert.True(t, iter.Next())
+		assert.Equal(t, 5, iter.Value())
+
+		assert.True(t, iter.Next())
+		assert.Equal(t, 6, iter.Value())
+
+		assert.False(t, iter.Next())
+	}
+}
+
+func TestIterableNils(t *testing.T) {
+	// nil generator in zero value
+
+	var iterable Iterable
+
+	func() {
+		defer func() {
+			assert.Equal(t, ErrIterableGeneratorCannotBeNil, recover())
+		}()
+
+		iterable.Iter()
+		assert.Fail(t, "Must panic")
+	}()
+
+	// generator returns nil
+
+	iterable.Generator = func() func() (interface{}, bool) { return nil }
+
+	func() {
+		defer func() {
+			assert.Equal(t, ErrIterableGeneratorCannotReturnNil, recover())
+		}()
+
+		iterable.Iter()
+		assert.Fail(t, "Must panic")
+	}()
+}
+
+func TestIterableGeneratorReplaced(t *testing.T) {
+	iterable := IterableOf(1)
+
+	iter := iterable.Iter()
+	assert.Equal(t, 1, iter.NextValue())
+	assert.False(t, iter.Next())
+
+	iter = iterable.Iter()
+	assert.Equal(t, 1, iter.NextValue())
+	assert.False(t, iter.Next())
+
+	iterable.Generator = func() func() (interface{}, bool) { return ArraySliceIterFunc(reflect.ValueOf([]int{2})) }
+
+	iter = iterable.Iter()
+	assert.Equal(t, 2, iter.NextValue())
+	assert.False(t, iter.Next())
+
+	iter = iterable.Iter()
+	assert.Equal(t, 2, iter.NextValue())
+	assert.False(t, iter.Next())
 }

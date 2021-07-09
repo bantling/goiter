@@ -12,15 +12,19 @@ import (
 
 // Error constants
 const (
-	InvalidUTF8EncodingError = "Invalid UTF 8 encoding"
-	ErrNewIterNeedsIterator  = "NewIter requires an iterator"
-	ErrNextExhaustedIter     = "Iter.Next called on exhausted iterator"
-	ErrValueExhaustedIter    = "Iter.Value called on exhausted iterator"
-	ErrValueNextFirst        = "Iter.Next has to be called before iter.Value"
-	ErrValueCannotBeNil      = "value cannot be nil"
-	ErrUnreadExhaustedIter   = "Iter.Unread called on exhausted iterator"
-	ErrColsGreaterThanZero   = "cols must be > 0"
-	ErrRowsGreaterThanZero   = "rows must be > 0"
+	InvalidUTF8EncodingError            = "Invalid UTF 8 encoding"
+	ErrArraySliceIterFuncArg            = "ArraySliceIterFunc argument must be an array or slice"
+	ErrMapIterFuncArg                   = "MapIterFunc argument must be a map"
+	ErrNewIterNeedsIterator             = "NewIter requires an iterator"
+	ErrNextExhaustedIter                = "Iter.Next called on exhausted iterator"
+	ErrValueExhaustedIter               = "Iter.Value called on exhausted iterator"
+	ErrValueNextFirst                   = "Iter.Next has to be called before iter.Value"
+	ErrValueCannotBeNil                 = "value cannot be nil"
+	ErrUnreadExhaustedIter              = "Iter.Unread called on exhausted iterator"
+	ErrColsGreaterThanZero              = "cols must be > 0"
+	ErrRowsGreaterThanZero              = "rows must be > 0"
+	ErrIterableGeneratorCannotBeNil     = "Iterable.Generator cannot be nil"
+	ErrIterableGeneratorCannotReturnNil = "Iterable.Generator cannot return a nil iterating function"
 )
 
 var (
@@ -34,7 +38,7 @@ var (
 // Panics if the value is not an array or slice.
 func ArraySliceIterFunc(arraySlice reflect.Value) func() (interface{}, bool) {
 	if (arraySlice.Kind() != reflect.Array) && (arraySlice.Kind() != reflect.Slice) {
-		panic("ArraySliceIterFunc argument must be an array or slice")
+		panic(ErrArraySliceIterFuncArg)
 	}
 
 	var (
@@ -55,87 +59,6 @@ func ArraySliceIterFunc(arraySlice reflect.Value) func() (interface{}, bool) {
 	}
 }
 
-// Iterable is a supplier of an Iter
-type Iterable interface {
-	Iter() *Iter
-}
-
-// IterableFunc is an adapter to allow use of ordinary functions as Iterables.
-// If f is a function with the appropriate signature, IterableFunc(f) is an Iterable that calls f.
-type IterableFunc func() *Iter
-
-// Iter () calls i()
-func (i IterableFunc) Iter() *Iter {
-	return i()
-}
-
-// Wrapper is an Iterable with an embedded *Iter field, where the field can be changed at any time.
-type Wrapper struct {
-	iter *Iter
-}
-
-// WrapperOf constructs a Wrapper of the given *Iter; panics if the argument is nil
-func WrapperOf(iter *Iter) *Wrapper {
-	wrapper := &Wrapper{}
-	wrapper.SetIter(iter)
-
-	return wrapper
-}
-
-// SetIter sets the wrapped *Iter; panics if the argument is nil
-func (w *Wrapper) SetIter(iter *Iter) {
-	if iter == nil {
-		panic("Wrapper: cannot call SetIter(nil)")
-	}
-	w.iter = iter
-}
-
-// Iter is the Iterable implementation for Wrapper
-func (w Wrapper) Iter() *Iter {
-	if w.iter == nil {
-		panic("Wrapper: cannot call Iter() on the zero value")
-	}
-
-	return w.iter
-}
-
-// IterablesFunc iterates the values of any number of Iterables in the order passed
-func IterablesFunc(iterables []Iterable) func() (interface{}, bool) {
-	var (
-		num         = len(iterables)
-		idx         = 0
-		theIterable Iterable
-		theIter     *Iter
-	)
-
-	return func() (interface{}, bool) {
-		// Continue to return values from current iter until it is empty
-		if theIter != nil {
-			if theIter.Next() {
-				return theIter.Value(), true
-			}
-
-			// Nilify current iter once it is empty
-			theIter = nil
-		}
-
-		// Search any remaining iters for the next non-nil non-empty iter, if one exists
-		for (theIter == nil) && (idx < num) {
-			if theIterable, idx = iterables[idx], idx+1; theIterable != nil {
-				if theIter = theIterable.Iter(); (theIter != nil) && theIter.Next() {
-					return theIter.Value(), true
-				}
-			}
-
-			// Nilify iter in case it is non-nil and empty
-			theIter = nil
-		}
-
-		// No values left to iterate
-		return nil, false
-	}
-}
-
 // KeyValue contains a key value pair from a map
 type KeyValue struct {
 	Key   interface{}
@@ -145,7 +68,7 @@ type KeyValue struct {
 // MapIterFunc iterates a map
 func MapIterFunc(aMap reflect.Value) func() (interface{}, bool) {
 	if aMap.Kind() != reflect.Map {
-		panic("MapIterFunc argument must be a map")
+		panic(ErrMapIterFuncArg)
 	}
 
 	var (
@@ -198,7 +121,6 @@ func SingleValueIterFunc(aVal reflect.Value) func() (interface{}, bool) {
 // ElementsIterFunc returns an iterator function that iterates the elements of the item passed non-recursively.
 // The item is handled as follows:
 // - Array or Slice: returns ArraySliceOuterIterFunc(item)
-// - Iterable: returns IterFunc(item)
 // - Map: returns MapIterFunc(item)
 // - Nil ptr: returns NoValueIterFunc
 // - Otherwise returns SingleValueIterFunc(item)
@@ -211,10 +133,6 @@ func ElementsIterFunc(item reflect.Value) func() (interface{}, bool) {
 	case reflect.Map:
 		return MapIterFunc(item)
 	default:
-		if iterableObj, isa := item.Interface().(Iterable); isa {
-			return IterablesFunc([]Iterable{iterableObj})
-		}
-
 		if (item.Kind() == reflect.Ptr) && item.IsNil() {
 			return NoValueIterFunc
 		}
@@ -435,6 +353,11 @@ func Of(items ...interface{}) *Iter {
 // OfFlatten constructs an Iter that flattens a multi-dimensional array or slice into a new one-dimensional slice.
 // See FlattenArraySlice.
 func OfFlatten(items interface{}) *Iter {
+	if items == nil {
+		// Can't call reflect.ValueOf(nil)
+		return NewIter(NoValueIterFunc)
+	}
+
 	return NewIter(ArraySliceIterFunc(reflect.ValueOf(FlattenArraySlice(items))))
 }
 
@@ -465,11 +388,6 @@ func OfReaderRunes(src io.Reader) *Iter {
 // See ReaderToLinesIterFunc for details.
 func OfReaderLines(src io.Reader) *Iter {
 	return NewIter(ReaderToLinesIterFunc(src))
-}
-
-// OfIterables constructs an Iter that iterates each Iterable passed.
-func OfIterables(iterables ...Iterable) *Iter {
-	return NewIter(IterablesFunc(iterables))
 }
 
 // Next returns true if there is another item to be read by Value.
@@ -819,12 +737,6 @@ func (it *Iter) Unread(val interface{}) {
 	it.buffer = append(it.buffer, val)
 }
 
-// Iter is the Iterable interface.
-// By implementing Iterable, algorithms can be written against only Iterable, and accept *Iter or Iterable instances.
-func (it *Iter) Iter() *Iter {
-	return it
-}
-
 // SplitIntoRows splits the iterator into rows of at most the number of columns specified.
 // Since the number of items to iterate is not known, the algorithm fills across the first row from left to right,
 // then fills across the second row, and so on.
@@ -1044,4 +956,157 @@ func (it *Iter) ToSliceOf(value interface{}) interface{} {
 	}
 
 	return slice.Interface()
+}
+
+// ==== Iterable
+
+// Iterable is a generator of Iter that allows iterating the same data structure any number of times.
+// There are no thread safety guarantees in the generated Iter instances returned.
+// The generator may be replaced with a new generator at any time, to iterate a different data structure.
+type Iterable struct {
+	Generator func() func() (interface{}, bool)
+}
+
+// IterableArraySliceFunc is an iterating function generator for an array or slice
+func IterableArraySliceFunc(items interface{}) func() func() (interface{}, bool) {
+	return func() func() (interface{}, bool) { return ArraySliceIterFunc(reflect.ValueOf(items)) }
+}
+
+// IterableFlattenFunc is an iterating function generator that flattens a multi-dimensional array or slice into a single dimension
+func IterableFlattenFunc(items interface{}) func() func() (interface{}, bool) {
+	if items == nil {
+		// Can't call reflect.ValueOf(nil)
+		return func() func() (interface{}, bool) { return NoValueIterFunc }
+	}
+
+	return func() func() (interface{}, bool) {
+		return ArraySliceIterFunc(reflect.ValueOf(FlattenArraySlice(items)))
+	}
+}
+
+// IterableElementsFunc is an iterating function generator that iterates the elements of the value passed.
+// See ElementsIterFunc for the types it handles.
+func IterableElementsFunc(items interface{}) func() func() (interface{}, bool) {
+	if items == nil {
+		// Can't call reflect.ValueOf(nil)
+		return func() func() (interface{}, bool) { return NoValueIterFunc }
+	}
+
+	return func() func() (interface{}, bool) { return ElementsIterFunc(reflect.ValueOf(items)) }
+}
+
+// IterablesFunc is an iterating function generator that iterates the values of any number of Iterables in the order passed.
+// As each Iterable.Iter() is exhausted, the next Iterable.Iter() is used.
+// If the slice is empty, the generated Iter will immediately return false on the first call to Next().
+func IterablesFunc(iterables []*Iterable) func() func() (interface{}, bool) {
+	return func() func() (interface{}, bool) {
+		var (
+			num         = len(iterables)
+			idx         = 0
+			theIterable *Iterable
+			theIter     *Iter
+		)
+
+		return func() (interface{}, bool) {
+			// Continue to return values from current iter until it is empty
+			if theIter != nil {
+				if theIter.Next() {
+					return theIter.Value(), true
+				}
+
+				// Nilify current iter once it is empty
+				theIter = nil
+			}
+
+			// Search any remaining iters for the next non-empty generated *Iter, if any
+			for idx < num {
+				theIterable = iterables[idx]
+				idx++
+				if theIterable != nil {
+					if theIter = theIterable.Iter(); theIter.Next() {
+						return theIter.Value(), true
+					}
+				}
+
+				// Nilify iter in case it is non-nil and empty
+				theIter = nil
+			}
+
+			// No values left to iterate
+			return nil, false
+		}
+	}
+}
+
+// IterableOfGenerator constructs an Iterable from an iterating function generator.
+// Panics if the provided generator is nil.
+func IterableOfGenerator(generator func() func() (interface{}, bool)) *Iterable {
+	if generator == nil {
+		panic(ErrIterableGeneratorCannotBeNil)
+	}
+
+	return &Iterable{Generator: generator}
+}
+
+// IterableOf constructs an Iterable from the items passed.
+// See IterableArraySliceFunc.
+func IterableOf(items ...interface{}) *Iterable {
+	return &Iterable{Generator: IterableArraySliceFunc(items)}
+}
+
+// IterableOfFlatten constructs an Iterable that iterates a multi-dimensional array or slice flattened into a new one-dimensional slice.
+// See IterableFlattenFunc.
+func IterableOfFlatten(items interface{}) *Iterable {
+	return &Iterable{Generator: IterableFlattenFunc(items)}
+}
+
+// IterableOfElements constructs an Iterable that iterates the elements of the item passed.
+// See IterableElementsFunc.
+func IterableOfElements(items interface{}) *Iterable {
+	return &Iterable{Generator: IterableElementsFunc(items)}
+}
+
+// IterableOfIterables constructs an Iterable that iterates the iterables passed.
+// See IterablesFunc.
+func IterableOfIterables(iterables ...*Iterable) *Iterable {
+	return &Iterable{Generator: IterablesFunc(iterables)}
+}
+
+// Iter generates a new Iter instance for the underlying data structure.
+// Panics if the generator is nil, or the generators returns a nil *Iter.
+func (it Iterable) Iter() *Iter {
+	if it.Generator == nil {
+		panic(ErrIterableGeneratorCannotBeNil)
+	}
+
+	iterFunc := it.Generator()
+	if iterFunc == nil {
+		panic(ErrIterableGeneratorCannotReturnNil)
+	}
+
+	return NewIter(iterFunc)
+}
+
+// GeneratorOf replaces the generator with a new generator that iterates the items passed.
+// See IterableOf constructor function.
+func (it *Iterable) GeneratorOf(items ...interface{}) {
+	it.Generator = IterableArraySliceFunc(items)
+}
+
+// GeneratorFlatten replaces the generator with a new generator that iterates a multi-dimensional array or slice flattened into a new one-dimensional slice.
+// See IterableFlatten constructor function.
+func (it *Iterable) GeneratorFlatten(items ...interface{}) {
+	it.Generator = IterableArraySliceFunc(items)
+}
+
+// GeneratorElements replaces the generator with a new generator that iterates the elements of the item passed.
+// See IterableElements constructor function.
+func (it *Iterable) GeneratorElements(items ...interface{}) {
+	it.Generator = IterableArraySliceFunc(items)
+}
+
+// GeneratorIterables replaces the generator with a new generator that iterates the iterables passed.
+// See Iterables constructor function.
+func (it *Iterable) GeneratorIterables(items ...interface{}) {
+	it.Generator = IterableArraySliceFunc(items)
 }
