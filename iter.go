@@ -324,7 +324,6 @@ func FlattenArraySliceAsType(value interface{}, elementVal interface{}) interfac
 
 // Iter is an iterator of values of an arbitrary type.
 // Technically, the values can be different types, but that is usually undesirable.
-// Iter is an Iterable
 type Iter struct {
 	iter       func() (interface{}, bool)
 	nextCalled bool
@@ -1087,26 +1086,26 @@ func (it Iterable) Iter() *Iter {
 	return NewIter(iterFunc)
 }
 
-// GeneratorOf replaces the generator with a new generator that iterates the items passed.
+// Of replaces the generator with a new generator that iterates the items passed.
 // See IterableOf constructor function.
-func (it *Iterable) GeneratorOf(items ...interface{}) {
+func (it *Iterable) Of(items ...interface{}) {
 	it.Generator = IterableArraySliceFunc(items)
 }
 
-// GeneratorFlatten replaces the generator with a new generator that iterates a multi-dimensional array or slice flattened into a new one-dimensional slice.
+// OfFlatten replaces the generator with a new generator that iterates a multi-dimensional array or slice flattened into a new one-dimensional slice.
 // See IterableFlatten constructor function.
-func (it *Iterable) GeneratorFlatten(items ...interface{}) {
-	it.Generator = IterableArraySliceFunc(items)
+func (it *Iterable) OfFlatten(items interface{}) {
+	it.Generator = IterableFlattenFunc(items)
 }
 
-// GeneratorElements replaces the generator with a new generator that iterates the elements of the item passed.
+// OfElements replaces the generator with a new generator that iterates the elements of the item passed.
 // See IterableElements constructor function.
-func (it *Iterable) GeneratorElements(items ...interface{}) {
-	it.Generator = IterableArraySliceFunc(items)
+func (it *Iterable) OfElements(items interface{}) {
+	it.Generator = IterableElementsFunc(items)
 }
 
-// GeneratorIterables replaces the generator with a new generator that iterates the iterables passed.
+// OfIterables replaces the generator with a new generator that iterates the iterables passed.
 // See Iterables constructor function.
-func (it *Iterable) GeneratorIterables(items ...interface{}) {
-	it.Generator = IterableArraySliceFunc(items)
+func (it *Iterable) OfIterables(items ...*Iterable) {
+	it.Generator = IterablesFunc(items)
 }

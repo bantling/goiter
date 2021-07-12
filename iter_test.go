@@ -1698,6 +1698,7 @@ func TestIterableGeneratorReplaced(t *testing.T) {
 	assert.Equal(t, 1, iter.NextValue())
 	assert.False(t, iter.Next())
 
+	// Replace field
 	iterable.Generator = func() func() (interface{}, bool) { return ArraySliceIterFunc(reflect.ValueOf([]int{2})) }
 
 	iter = iterable.Iter()
@@ -1706,5 +1707,49 @@ func TestIterableGeneratorReplaced(t *testing.T) {
 
 	iter = iterable.Iter()
 	assert.Equal(t, 2, iter.NextValue())
+	assert.False(t, iter.Next())
+
+	// Of method
+	iterable.Of(3)
+
+	iter = iterable.Iter()
+	assert.Equal(t, 3, iter.NextValue())
+	assert.False(t, iter.Next())
+
+	iter = iterable.Iter()
+	assert.Equal(t, 3, iter.NextValue())
+	assert.False(t, iter.Next())
+
+	// OfFlatten method
+	iterable.OfFlatten([][]int{{4}})
+
+	iter = iterable.Iter()
+	assert.Equal(t, 4, iter.NextValue())
+	assert.False(t, iter.Next())
+
+	iter = iterable.Iter()
+	assert.Equal(t, 4, iter.NextValue())
+	assert.False(t, iter.Next())
+
+	// OfElements method
+	iterable.OfElements([]int{5})
+
+	iter = iterable.Iter()
+	assert.Equal(t, 5, iter.NextValue())
+	assert.False(t, iter.Next())
+
+	iter = iterable.Iter()
+	assert.Equal(t, 5, iter.NextValue())
+	assert.False(t, iter.Next())
+
+	// OfIterables method
+	iterable.OfIterables(IterableOf(6))
+
+	iter = iterable.Iter()
+	assert.Equal(t, 6, iter.NextValue())
+	assert.False(t, iter.Next())
+
+	iter = iterable.Iter()
+	assert.Equal(t, 6, iter.NextValue())
 	assert.False(t, iter.Next())
 }
